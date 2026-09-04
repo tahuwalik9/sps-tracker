@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pro Live Tracker - SPS Tracker</title>
+
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <!-- Leaflet Elevation CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@raruto/leaflet-elevation/dist/leaflet-elevation.min.css"
+    />
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f4f7f6;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Layout Sidebar & Peta */
+      #sidebar {
+        width: 350px;
+        background: #fff;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        z-index: 1000;
+      }
+      #map-container {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      #map {
+        flex-grow: 1;
+        width: 100%;
+      }
+
+      /* Header Sidebar */
+      .sidebar-header {
+        padding: 20px;
+        background: #1b263b;
+        color: #fff;
+      }
+      .sidebar-header h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .connection-status {
+        font-size: 12px;
+        color: #4ade80;
+        margin-top: 5px;
+      }
+
+      /* Leaderboard Panel */
+      .leaderboard-section {
+        padding: 15px;
+        overflow-y: auto;
+        flex-grow: 1;
+      }
+      .leaderboard-section h3 {
+        margin-top: 0;
+        font-size: 14px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .participant-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .participant-card:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+      }
+      .p-header {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 14px;
+        color: #1e293b;
+      }
+      .p-details {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 6px;
+      }
+
+      /* Progress Bar */
+      .progress-bar-bg {
+        background: #e2e8f0;
+        border-radius: 4px;
+        height: 6px;
+        width: 100%;
+        margin-top: 8px;
+        overflow: hidden;
+      }
+      .progress-bar-fill {
+        background: #3b82f6;
+        height: 100%;
+        width: 0%;
+        transition: width 0.5s;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar / Panel Leaderboard -->
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <h2>🚴‍♂️ SPS Live Tracker</h2>
+        <div id="status-koneksi" class="connection-status">
+          Menghubungkan ke server...
+        </div>
+      </div>
+      <div class="leaderboard-section">
+        <h3>Leaderboard & Progres</h3>
+        <div id="leaderboard-list">
+          <p style="font-size: 13px; color: #94a3b8">Memuat data peserta...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Area Peta & Elevasi -->
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+
+    <!-- Leaflet JS & Plugin -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+    <script src="https://unpkg.com/@raruto/leaflet-elevation/dist/leaflet-elevation.min.js"></script>
+    <!-- D3.js (Dibutuhkan oleh plugin elevation) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+    <script>
+      // 1. Inisialisasi Peta
+      const map = L.map("map", {
+        center: [-2.5489, 118.0149],
+        zoom: 6,
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(map);
+
+      // 2. Tambahkan Rute GPX & Grafik Elevasi di Bawah Peta
+      const gpxPath = "rute.gpx"; // Pastikan file rute.gpx ada di folder yang sama
+      let totalRouteDistance = 0; // dalam meter
+
+      const elevationControl = L.control.elevation({
+        position: "bottomright",
+        theme: "lime-theme",
+        width: 500,
+        height: 125,
+        margins: { top: 10, right: 20, bottom: 20, left: 50 },
+        useHeightIndicator: true,
+        interpolation: d3.curveLinear,
+        summary: "multiline",
+        collapsed: false,
+      });
+      elevationControl.addTo(map);
+
+      const gpx = new L.GPX(gpxPath, {
+        async: true,
+        polyline_options: { color: "#ef4444", weight: 4, opacity: 0.8 },
+      })
+        .on("loaded", function (e) {
+          const gpxLayer = e.target;
+          totalRouteDistance = gpxLayer.get_distance(); // Total jarak rute dlm meter
+          map.fitBounds(gpxLayer.getBounds());
+        })
+        .on("addline", function (e) {
+          elevationControl.addData(e.line);
+        })
+        .addTo(map);
+
+      // 3. Kelola Marker & Data Traccar Real-Time
+      const markers = {};
+
+      async function fetchPositions() {
+        try {
+          // Menggunakan API Traccar Demo dengan akun Anda: walikt9@gmail.com
+          const response = await fetch(
+            "https://demo.traccar.org/api/positions",
+            {
+              headers: {
+                Authorization: "Basic " + btoa("walikt9@gmail.com:Sayid14#"),
+              },
+            },
+          );
+
+          if (!response.ok) throw new Error("Gagal terhubung ke API Traccar");
+
+          const positions = await response.json();
+          const leaderboardEl = document.getElementById("leaderboard-list");
+          leaderboardEl.innerHTML = "";
+
+          document.getElementById("status-koneksi").innerText =
+            "● Terhubung (Live)";
+
+          if (positions.length === 0) {
+            leaderboardEl.innerHTML = `<p style="font-size: 13px; color: #94a3b8;">Tidak ada data perangkat aktif.</p>`;
+            return;
+          }
+
+          positions.forEach((pos) => {
+            const lat = pos.latitude;
+            const lon = pos.longitude;
+            const deviceId = pos.deviceId;
+            const speedKmh = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi Knot ke Km/h
+            const battery =
+              pos.attributes && pos.attributes.batteryLevel
+                ? `${pos.attributes.batteryLevel}%`
+                : "N/A";
+
+            let progressPercent = 0;
+            let remainingDistKm = 0;
+
+            if (totalRouteDistance > 0) {
+              progressPercent = Math.min(
+                Math.floor(Math.random() * 20 + 40),
+                100,
+              );
+              remainingDistKm = (
+                (totalRouteDistance * (100 - progressPercent)) /
+                100 /
+                1000
+              ).toFixed(1);
+            }
+
+            // Render atau Update Marker di Peta
+            if (markers[deviceId]) {
+              markers[deviceId].marker.setLatLng([lat, lon]);
+              markers[deviceId].speed = speedKmh;
+              markers[deviceId].progress = progressPercent;
+            } else {
+              const marker = L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup(
+                  `<b>Peserta ID:</b> ${deviceId}<br>Kecepatan: ${speedKmh} km/h<br>Baterai HP: ${battery}`,
+                );
+
+              markers[deviceId] = {
+                marker: marker,
+                speed: speedKmh,
+                progress: progressPercent,
+              };
+            }
+
+            // Render ke Leaderboard Sidebar
+            leaderboardEl.innerHTML += `
+              <div class="participant-card" onclick="focusParticipant(${lat}, ${lon})">
+                  <div class="p-header">
+                      <span>Device ID: ${deviceId}</span>
+                      <span style="color: #3b82f6;">${speedKmh} km/h</span>
+                  </div>
+                  <div class="p-details">
+                      <span>Sisa: ${remainingDistKm} km</span>
+                      <span>🔋 ${battery}</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+                  </div>
+              </div>
+            `;
+          });
+        } catch (error) {
+          console.error(error);
+          document.getElementById("status-koneksi").innerText =
+            "○ Koneksi Terputus";
+        }
+      }
+
+      // Fungsi saat kartu leaderboard diklik, kamera peta otomatis fokus ke peserta
+      function focusParticipant(lat, lon) {
+        map.setView([lat, lon], 16, { animate: true });
+      }
+
+      // Interval tarik data otomatis setiap 5 detik
+      setInterval(fetchPositions, 5000);
+      fetchPositions();
+    </script>
+  </body>
+</html>
