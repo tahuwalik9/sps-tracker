@@ -118,15 +118,13 @@
       <div class="sidebar-header">
         <h2>🚴‍♂️ SPS Live Tracker</h2>
         <div id="status-koneksi" class="connection-status">
-          Menghubungkan ke Traccar...
+          Menghubungkan via Proxy...
         </div>
       </div>
       <div class="leaderboard-section">
         <h3>Leaderboard & Progres</h3>
         <div id="leaderboard-list">
-          <p style="font-size: 13px; color: #94a3b8">
-            Memuat perangkat "Sayid"...
-          </p>
+          <p style="font-size: 13px; color: #94a3b8">Memuat data peserta...</p>
         </div>
       </div>
     </div>
@@ -182,31 +180,45 @@
 
       async function fetchTraccarData() {
         try {
-          // Ambil daftar devices untuk memastikan nama "Sayid" terdeteksi
-          const resDev = await fetch("https://demo.traccar.org/api/devices", {
-            headers: { Authorization: authHeader, Accept: "application/json" },
-          });
+          // Menggunakan CORS Proxy publik untuk bypass pembatasan peladen demo
+          const proxyUrl = "https://corsproxy.io/?";
+
+          const resDev = await fetch(
+            proxyUrl +
+              encodeURIComponent("https://demo.traccar.org/api/devices"),
+            {
+              headers: {
+                Authorization: authHeader,
+                Accept: "application/json",
+              },
+            },
+          );
           if (!resDev.ok) throw new Error("Gagal ambil devices");
           const devices = await resDev.json();
 
-          // Ambil posisi perangkat
-          const resPos = await fetch("https://demo.traccar.org/api/positions", {
-            headers: { Authorization: authHeader, Accept: "application/json" },
-          });
+          const resPos = await fetch(
+            proxyUrl +
+              encodeURIComponent("https://demo.traccar.org/api/positions"),
+            {
+              headers: {
+                Authorization: authHeader,
+                Accept: "application/json",
+              },
+            },
+          );
           if (!resPos.ok) throw new Error("Gagal ambil positions");
           const positions = await resPos.json();
 
           const leaderboardEl = document.getElementById("leaderboard-list");
           leaderboardEl.innerHTML = "";
           document.getElementById("status-koneksi").innerText =
-            "● Terhubung (Live Traccar)";
+            "● Terhubung (Live CORS Proxy)";
 
           if (devices.length === 0 || positions.length === 0) {
             leaderboardEl.innerHTML = `<p style="font-size: 13px; color: #94a3b8;">Belum ada data posisi GPS aktif.</p>`;
             return;
           }
 
-          // Buat kamus nama perangkat
           const deviceNames = {};
           devices.forEach((d) => {
             deviceNames[d.id] = d.name;
@@ -222,7 +234,7 @@
               pos.attributes && pos.attributes.batteryLevel
                 ? `${pos.attributes.batteryLevel}%`
                 : "100%";
-            const progressPercent = 35; // Progres estimasi di rute
+            const progressPercent = 35;
             const remainingDistKm =
               totalRouteDistance > 0
                 ? (
@@ -261,7 +273,7 @@
         } catch (err) {
           console.error(err);
           document.getElementById("status-koneksi").innerText =
-            "○ Menunggu Sinkronisasi Server...";
+            "○ Koneksi Terputus (Proxy Blocked)";
         }
       }
 
