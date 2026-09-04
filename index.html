@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pro Live Tracker - SPS Tracker</title>
 
+    <!-- Leaflet CSS -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <!-- Leaflet Elevation CSS -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/@raruto/leaflet-elevation/dist/leaflet-elevation.min.css"
@@ -24,8 +26,6 @@
         height: 100vh;
         overflow: hidden;
       }
-
-      /* Layout Sidebar & Peta */
       #sidebar {
         width: 350px;
         background: #fff;
@@ -44,8 +44,6 @@
         flex-grow: 1;
         width: 100%;
       }
-
-      /* Header Sidebar */
       .sidebar-header {
         padding: 20px;
         background: #1b263b;
@@ -60,8 +58,6 @@
         color: #4ade80;
         margin-top: 5px;
       }
-
-      /* Leaderboard Panel */
       .leaderboard-section {
         padding: 15px;
         overflow-y: auto;
@@ -74,7 +70,6 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
-
       .participant-card {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -102,8 +97,6 @@
         color: #64748b;
         margin-top: 6px;
       }
-
-      /* Progress Bar */
       .progress-bar-bg {
         background: #e2e8f0;
         border-radius: 4px;
@@ -125,13 +118,15 @@
       <div class="sidebar-header">
         <h2>🚴‍♂️ SPS Live Tracker</h2>
         <div id="status-koneksi" class="connection-status">
-          Menghubungkan ke server...
+          Menghubungkan ke Traccar...
         </div>
       </div>
       <div class="leaderboard-section">
         <h3>Leaderboard & Progres</h3>
         <div id="leaderboard-list">
-          <p style="font-size: 13px; color: #94a3b8">Memuat data peserta...</p>
+          <p style="font-size: 13px; color: #94a3b8">
+            Memuat perangkat "Sayid"...
+          </p>
         </div>
       </div>
     </div>
@@ -146,21 +141,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 
     <script>
-      // 1. Inisialisasi Peta
-      const map = L.map("map", {
-        center: [-2.5489, 118.0149],
-        zoom: 6,
-      });
+      const map = L.map("map", { center: [-2.5489, 118.0149], zoom: 6 });
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap contributors",
       }).addTo(map);
 
-      // 2. Tambahkan Rute GPX & Grafik Elevasi di Bawah Peta
       const gpxPath = "rute.gpx";
       let totalRouteDistance = 0;
-      let routePoints = []; // Menyimpan titik koordinat jalur GPX untuk simulasi pintar
 
       const elevationControl = L.control.elevation({
         position: "bottomright",
@@ -180,141 +169,104 @@
         polyline_options: { color: "#ef4444", weight: 4, opacity: 0.8 },
       })
         .on("loaded", function (e) {
-          const gpxLayer = e.target;
-          totalRouteDistance = gpxLayer.get_distance();
-          map.fitBounds(gpxLayer.getBounds());
-
-          // Ambil titik-titik jalur rute GPX untuk acuan posisi peserta
-          const layers = gpxLayer.getLayers();
-          layers.forEach((layer) => {
-            if (layer instanceof L.Polyline) {
-              routePoints = layer.getLatLngs();
-            }
-          });
+          totalRouteDistance = e.target.get_distance();
+          map.fitBounds(e.target.getBounds());
         })
         .on("addline", function (e) {
           elevationControl.addData(e.line);
         })
         .addTo(map);
 
-      // 3. Kelola Marker & Data Real-Time (Traccar + Smart Fallback Simulation)
       const markers = {};
       const authHeader = "Basic " + btoa("walikt9@gmail.com:Sayid14#");
-      let simIndex = 0; // Indeks simulasi pergerakan di atas jalur GPX
 
-      async function fetchPositions() {
+      async function fetchTraccarData() {
         try {
-          const resPositions = await fetch(
-            "https://demo.traccar.org/api/positions",
-            {
-              headers: {
-                Authorization: authHeader,
-                Accept: "application/json",
-              },
-            },
-          );
+          // Ambil daftar devices untuk memastikan nama "Sayid" terdeteksi
+          const resDev = await fetch("https://demo.traccar.org/api/devices", {
+            headers: { Authorization: authHeader, Accept: "application/json" },
+          });
+          if (!resDev.ok) throw new Error("Gagal ambil devices");
+          const devices = await resDev.json();
 
-          if (!resPositions.ok) throw new Error("Gagal ambil data positions");
-          const positions = await resPositions.json();
+          // Ambil posisi perangkat
+          const resPos = await fetch("https://demo.traccar.org/api/positions", {
+            headers: { Authorization: authHeader, Accept: "application/json" },
+          });
+          if (!resPos.ok) throw new Error("Gagal ambil positions");
+          const positions = await resPos.json();
 
-          if (positions && positions.length > 0) {
-            // Jika Traccar merespon data asli
-            document.getElementById("status-koneksi").innerText =
-              "● Terhubung (Live Traccar)";
-            updateUI(positions, false);
-          } else {
-            // Jika Traccar kosong, jalankan simulasi agar dashboard tetap hidup
-            throw new Error("Data kosong dari server");
-          }
-        } catch (error) {
-          // Fallback Mode: Simulasi Pergerakan Peserta "Sayid" mengikuti jalur GPX
+          const leaderboardEl = document.getElementById("leaderboard-list");
+          leaderboardEl.innerHTML = "";
           document.getElementById("status-koneksi").innerText =
-            "● Terhubung (Live Simulation)";
+            "● Terhubung (Live Traccar)";
 
-          if (routePoints.length > 0) {
-            simIndex = (simIndex + 2) % routePoints.length; // Bergerak bertahap
-            const currentPoint = routePoints[simIndex];
-
-            const simulatedData = [
-              {
-                deviceId: 81585,
-                latitude: currentPoint.lat,
-                longitude: currentPoint.lng,
-                speed: 6.5, // ~24 km/h
-                attributes: { batteryLevel: 88 },
-              },
-            ];
-            updateUI(simulatedData, true);
+          if (devices.length === 0 || positions.length === 0) {
+            leaderboardEl.innerHTML = `<p style="font-size: 13px; color: #94a3b8;">Belum ada data posisi GPS aktif.</p>`;
+            return;
           }
+
+          // Buat kamus nama perangkat
+          const deviceNames = {};
+          devices.forEach((d) => {
+            deviceNames[d.id] = d.name;
+          });
+
+          positions.forEach((pos) => {
+            const lat = pos.latitude;
+            const lon = pos.longitude;
+            const deviceId = pos.deviceId;
+            const name = deviceNames[deviceId] || "Sayid";
+            const speedKmh = pos.speed ? Math.round(pos.speed * 1.852) : 0;
+            const battery =
+              pos.attributes && pos.attributes.batteryLevel
+                ? `${pos.attributes.batteryLevel}%`
+                : "100%";
+            const progressPercent = 35; // Progres estimasi di rute
+            const remainingDistKm =
+              totalRouteDistance > 0
+                ? (
+                    (totalRouteDistance * (100 - progressPercent)) /
+                    100 /
+                    1000
+                  ).toFixed(1)
+                : "5.0";
+
+            if (markers[deviceId]) {
+              markers[deviceId].setLatLng([lat, lon]);
+            } else {
+              markers[deviceId] = L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup(
+                  `<b>Peserta:</b> ${name}<br>Kecepatan: ${speedKmh} km/h`,
+                );
+            }
+
+            leaderboardEl.innerHTML += `
+              <div class="participant-card" onclick="map.setView([${lat}, ${lon}], 16)">
+                  <div class="p-header">
+                      <span>👤 ${name}</span>
+                      <span style="color: #3b82f6;">${speedKmh} km/h</span>
+                  </div>
+                  <div class="p-details">
+                      <span>Sisa: ${remainingDistKm} km</span>
+                      <span>🔋 ${battery}</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+                  </div>
+              </div>
+            `;
+          });
+        } catch (err) {
+          console.error(err);
+          document.getElementById("status-koneksi").innerText =
+            "○ Menunggu Sinkronisasi Server...";
         }
       }
 
-      function updateUI(positions, isSimulation) {
-        const leaderboardEl = document.getElementById("leaderboard-list");
-        leaderboardEl.innerHTML = "";
-
-        positions.forEach((pos) => {
-          const lat = pos.latitude;
-          const lon = pos.longitude;
-          const deviceId = pos.deviceId;
-          const deviceName =
-            deviceId === 81585 ? "Sayid (Peserta)" : `ID: ${deviceId}`;
-          const speedKsm = pos.speed ? Math.round(pos.speed * 1.852) : 24;
-          const battery =
-            pos.attributes && pos.attributes.batteryLevel
-              ? `${pos.attributes.batteryLevel}%`
-              : "88%";
-
-          let progressPercent = isSimulation
-            ? Math.round((simIndex / routePoints.length) * 100)
-            : 65;
-          let remainingDistKm =
-            totalRouteDistance > 0
-              ? (
-                  (totalRouteDistance * (100 - progressPercent)) /
-                  100 /
-                  1000
-                ).toFixed(1)
-              : "0.0";
-
-          // Render atau Update Marker di Peta
-          if (markers[deviceId]) {
-            markers[deviceId].marker.setLatLng([lat, lon]);
-          } else {
-            const marker = L.marker([lat, lon])
-              .addTo(map)
-              .bindPopup(
-                `<b>Peserta:</b> ${deviceName}<br>Kecepatan: ${speedKsm} km/h<br>Baterai: ${battery}`,
-              );
-
-            markers[deviceId] = { marker: marker };
-          }
-
-          // Render ke Leaderboard Sidebar
-          leaderboardEl.innerHTML += `
-            <div class="participant-card" onclick="focusParticipant(${lat}, ${lon})">
-                <div class="p-header">
-                    <span>👤 ${deviceName}</span>
-                    <span style="color: #3b82f6;">${speedKsm} km/h</span>
-                </div>
-                <div class="p-details">
-                    <span>Sisa: ${remainingDistKm} km</span>
-                    <span>🔋 ${battery}</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
-                </div>
-            </div>
-          `;
-        });
-      }
-
-      function focusParticipant(lat, lon) {
-        map.setView([lat, lon], 16, { animate: true });
-      }
-
-      setInterval(fetchPositions, 4000);
-      setTimeout(fetchPositions, 1000);
+      setInterval(fetchTraccarData, 5000);
+      fetchTraccarData();
     </script>
   </body>
 </html>
