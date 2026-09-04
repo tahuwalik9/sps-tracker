@@ -148,7 +148,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
     <script src="https://unpkg.com/@raruto/leaflet-elevation/dist/leaflet-elevation.min.js"></script>
-    <!-- D3.js (Dibutuhkan oleh plugin elevation) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 
     <script>
@@ -164,8 +163,8 @@
       }).addTo(map);
 
       // 2. Tambahkan Rute GPX & Grafik Elevasi di Bawah Peta
-      const gpxPath = "rute.gpx"; // Pastikan file rute.gpx ada di folder yang sama
-      let totalRouteDistance = 0; // dalam meter
+      const gpxPath = "rute.gpx";
+      let totalRouteDistance = 0;
 
       const elevationControl = L.control.elevation({
         position: "bottomright",
@@ -186,7 +185,7 @@
       })
         .on("loaded", function (e) {
           const gpxLayer = e.target;
-          totalRouteDistance = gpxLayer.get_distance(); // Total jarak rute dlm meter
+          totalRouteDistance = gpxLayer.get_distance();
           map.fitBounds(gpxLayer.getBounds());
         })
         .on("addline", function (e) {
@@ -194,40 +193,60 @@
         })
         .addTo(map);
 
-      // 3. Kelola Marker & Data Traccar Real-Time
+      // 3. Kelola Marker & Data Traccar Real-Time (Menggunakan /api/devices & /api/positions)
       const markers = {};
+      const authHeader = "Basic " + btoa("walikt9@gmail.com:Sayid14#");
 
       async function fetchPositions() {
         try {
-          // Menggunakan API Traccar Demo dengan akun Anda: walikt9@gmail.com
-          const response = await fetch(
-            "https://demo.traccar.org/api/positions",
+          // Ambil daftar perangkat milik akun untuk mencocokkan nama peserta
+          const resDevices = await fetch(
+            "https://demo.traccar.org/api/devices",
             {
               headers: {
-                Authorization: "Basic " + btoa("walikt9@gmail.com:Sayid14#"),
+                Authorization: authHeader,
+                Accept: "application/json",
               },
             },
           );
+          if (!resDevices.ok) throw new Error("Gagal ambil data devices");
+          const devices = await resDevices.json();
 
-          if (!response.ok) throw new Error("Gagal terhubung ke API Traccar");
+          // Ambil posisi seluruh perangkat
+          const resPositions = await fetch(
+            "https://demo.traccar.org/api/positions",
+            {
+              headers: {
+                Authorization: authHeader,
+                Accept: "application/json",
+              },
+            },
+          );
+          if (!resPositions.ok) throw new Error("Gagal ambil data positions");
+          const positions = await resPositions.json();
 
-          const positions = await response.json();
           const leaderboardEl = document.getElementById("leaderboard-list");
           leaderboardEl.innerHTML = "";
-
           document.getElementById("status-koneksi").innerText =
             "● Terhubung (Live)";
 
-          if (positions.length === 0) {
-            leaderboardEl.innerHTML = `<p style="font-size: 13px; color: #94a3b8;">Tidak ada data perangkat aktif.</p>`;
+          if (devices.length === 0 || positions.length === 0) {
+            leaderboardEl.innerHTML = `<p style="font-size: 13px; color: #94a3b8;">Perangkat belum mengirim data GPS.</p>`;
             return;
           }
+
+          // Petakan deviceId ke Nama Perangkat
+          const deviceMap = {};
+          devices.forEach((d) => {
+            deviceMap[d.id] = d.name;
+          });
 
           positions.forEach((pos) => {
             const lat = pos.latitude;
             const lon = pos.longitude;
             const deviceId = pos.deviceId;
-            const speedKmh = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi Knot ke Km/h
+            const deviceName = deviceMap[deviceId] || `ID: ${deviceId}`;
+            const speedKmh = pos.speed ? Math.round(pos.speed * 1.852) : 0;
             const battery =
               pos.attributes && pos.attributes.batteryLevel
                 ? `${pos.attributes.batteryLevel}%`
@@ -251,27 +270,21 @@
             // Render atau Update Marker di Peta
             if (markers[deviceId]) {
               markers[deviceId].marker.setLatLng([lat, lon]);
-              markers[deviceId].speed = speedKmh;
-              markers[deviceId].progress = progressPercent;
             } else {
               const marker = L.marker([lat, lon])
                 .addTo(map)
                 .bindPopup(
-                  `<b>Peserta ID:</b> ${deviceId}<br>Kecepatan: ${speedKmh} km/h<br>Baterai HP: ${battery}`,
+                  `<b>Peserta:</b> ${deviceName}<br>Kecepatan: ${speedKmh} km/h<br>Baterai: ${battery}`,
                 );
 
-              markers[deviceId] = {
-                marker: marker,
-                speed: speedKmh,
-                progress: progressPercent,
-              };
+              markers[deviceId] = { marker: marker };
             }
 
             // Render ke Leaderboard Sidebar
             leaderboardEl.innerHTML += `
               <div class="participant-card" onclick="focusParticipant(${lat}, ${lon})">
                   <div class="p-header">
-                      <span>Device ID: ${deviceId}</span>
+                      <span>👤 ${deviceName}</span>
                       <span style="color: #3b82f6;">${speedKmh} km/h</span>
                   </div>
                   <div class="p-details">
@@ -291,12 +304,10 @@
         }
       }
 
-      // Fungsi saat kartu leaderboard diklik, kamera peta otomatis fokus ke peserta
       function focusParticipant(lat, lon) {
         map.setView([lat, lon], 16, { animate: true });
       }
 
-      // Interval tarik data otomatis setiap 5 detik
       setInterval(fetchPositions, 5000);
       fetchPositions();
     </script>
