@@ -135,18 +135,20 @@
         })
         .addTo(map);
 
-      // 3. Logika Live Tracking & Deteksi Status Offline/Online dengan CORS Proxy
+      // 3. Logika Live Tracking & Deteksi Status Offline/Online dengan CORS Proxy & Encode
       var markers = {};
-      const TRACCAR_URL =
-        "https://corsproxy.io/?https://traccar-production-ff17.up.railway.app";
+      const TRACCAR_URL = "https://traccar-production-ff17.up.railway.app";
       const AUTH_HEADER = "Basic " + btoa("walikt9@gmail.com:admin14#");
 
       function fetchGPSData() {
-        fetch(`${TRACCAR_URL}/api/positions`, {
+        const targetUrl = `${TRACCAR_URL}/api/positions`;
+        const proxyUrl =
+          "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+
+        fetch(proxyUrl, {
           method: "GET",
           headers: {
             Authorization: AUTH_HEADER,
-            "Content-Type": "application/json",
             Accept: "application/json",
           },
         })
