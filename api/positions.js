@@ -46,14 +46,23 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     const devices = await devicesResponse.json();
-    const deviceNames = Object.fromEntries(
-      devices.map((device) => [device.id, device.name || device.uniqueId]),
+    const deviceDetails = Object.fromEntries(
+      devices.map((device) => [
+        device.id,
+        {
+          name: device.name || device.uniqueId,
+          status: device.status || "unknown",
+          lastUpdate: device.lastUpdate || null,
+        },
+      ]),
     );
 
     return res.status(200).json(
       data.map((position) => ({
         ...position,
-        deviceName: deviceNames[position.deviceId] || `Peserta ${position.deviceId}`,
+        deviceName: deviceDetails[position.deviceId]?.name || `Peserta ${position.deviceId}`,
+        deviceStatus: deviceDetails[position.deviceId]?.status || "unknown",
+        deviceLastUpdate: deviceDetails[position.deviceId]?.lastUpdate || null,
       })),
     );
   } catch (error) {
