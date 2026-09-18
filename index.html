@@ -128,6 +128,67 @@
         flex: 1;
         height: 100%;
       }
+      #route-panel {
+        position: fixed;
+        left: 360px;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        min-height: 142px;
+        color: #f4f7fb;
+        background: rgba(12, 18, 25, 0.96);
+        border-top: 1px solid #2e465b;
+      }
+      .route-summary {
+        display: grid;
+        align-content: center;
+        gap: 10px;
+        padding: 14px 18px;
+        font-size: 13px;
+      }
+      .route-summary div {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .route-summary strong {
+        color: #fff;
+      }
+      .route-chart-wrap {
+        position: relative;
+        min-width: 0;
+        padding: 12px 18px 20px;
+      }
+      .route-chart-title {
+        color: #9fb0bf;
+        font-size: 11px;
+      }
+      #route-chart {
+        display: block;
+        width: 100%;
+        height: 86px;
+        margin-top: 5px;
+      }
+      @media (max-width: 720px) {
+        #sidebar {
+          width: 280px;
+        }
+        #route-panel {
+          left: 280px;
+          grid-template-columns: 1fr;
+          min-height: 190px;
+        }
+        .route-summary {
+          grid-template-columns: 1fr 1fr;
+          gap: 6px 12px;
+          padding: 8px 12px;
+        }
+        .route-chart-wrap {
+          padding: 4px 12px 12px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -150,6 +211,18 @@
       <!-- Peta Leaflet -->
       <div id="map"></div>
     </div>
+    <section id="route-panel" aria-label="Detail rute">
+      <div class="route-summary">
+        <div><span>Jarak rute</span><strong id="route-distance">Menghitung...</strong></div>
+        <div><span>Posisi peserta</span><strong id="route-progress">Menunggu...</strong></div>
+        <div><span>Elevasi live</span><strong id="route-elevation">-</strong></div>
+        <div><span>Kecepatan</span><strong id="route-speed">-</strong></div>
+      </div>
+      <div class="route-chart-wrap">
+        <div class="route-chart-title" id="route-chart-title">Profil elevasi rute</div>
+        <svg id="route-chart" viewBox="0 0 800 90" preserveAspectRatio="none" role="img" aria-label="Profil elevasi rute"></svg>
+      </div>
+    </section>
 
     <!-- Script Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -163,14 +236,36 @@
       }).addTo(map);
 
       // 2. Gambar rute GPX sebagai garis tanpa waypoint atau label otomatis.
+      var routePoints = [];
+      var routeDistances = [];
+      var routeElevations = [];
       fetch("rute.gpx")
         .then((response) => response.text())
         .then((gpxText) => {
           var xml = new DOMParser().parseFromString(gpxText, "application/xml");
-          var routePoints = Array.from(xml.querySelectorAll("trkpt")).map((point) => [
+          routePoints = Array.from(xml.querySelectorAll("trkpt")).map((point) => [
             Number(point.getAttribute("lat")),
             Number(point.getAttribute("lon")),
           ]);
+          routeElevations = Array.from(xml.querySelectorAll("trkpt")).map((point) => {
+            var elevation = point.querySelector("ele");
+            return elevation ? Number(elevation.textContent) : null;
+          });
+          routeDistances = [0];
+          for (var index = 1; index < routePoints.length; index += 1) {
+            routeDistances.push(
+              routeDistances[index - 1] +
+                distanceInMeters(
+                  routePoints[index - 1][0],
+                  routePoints[index - 1][1],
+                  routePoints[index][0],
+                  routePoints[index][1],
+                ),
+            );
+          }
+          document.getElementById("route-distance").textContent =
+            `${(routeDistances[routeDistances.length - 1] / 1000).toFixed(2)} km`;
+          renderRouteChart();
 
           if (routePoints.length > 1) {
             var route = L.polyline(routePoints, {
@@ -187,6 +282,40 @@
       var markers = {};
       var participantStats = {};
       var markerColors = ["#16a085", "#8e44ad", "#d35400", "#2980b9", "#c0392b", "#27ae60"];
+
+      function renderRouteChart() {
+        var chart = document.getElementById("route-chart");
+        if (!routeElevations.length || routeElevations.some((value) => value === null)) {
+          chart.innerHTML =
+            '<text x="400" y="48" text-anchor="middle" fill="#8193a3" font-size="12">Data elevasi belum tersedia di rute GPX</text>';
+          return;
+        }
+        var minimum = Math.min(...routeElevations);
+        var maximum = Math.max(...routeElevations);
+        var range = maximum - minimum || 1;
+        var points = routeElevations
+          .map((elevation, index) => `${(index / (routeElevations.length - 1)) * 800},${82 - ((elevation - minimum) / range) * 70}`)
+          .join(" ");
+        chart.innerHTML = `<polygon points="0,90 ${points} 800,90" fill="#235b82"></polygon><polyline points="${points}" fill="none" stroke="#43a8ef" stroke-width="2"></polyline>`;
+      }
+
+      function updateRouteDetails(latitude, longitude, altitude, speed) {
+        if (routePoints.length < 2) return;
+        var nearestIndex = 0;
+        var nearestDistance = Infinity;
+        routePoints.forEach((point, index) => {
+          var distance = distanceInMeters(latitude, longitude, point[0], point[1]);
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = index;
+          }
+        });
+        var routeDistance = routeDistances[routeDistances.length - 1] || 0;
+        var progress = routeDistance ? (routeDistances[nearestIndex] / routeDistance) * 100 : 0;
+        document.getElementById("route-progress").textContent = `${progress.toFixed(0)}% (±${Math.round(nearestDistance)} m)`;
+        document.getElementById("route-elevation").textContent = `${Math.round(altitude)} mdpl`;
+        document.getElementById("route-speed").textContent = `${speed} km/h`;
+      }
 
       function distanceInMeters(firstLat, firstLon, secondLat, secondLon) {
         var earthRadius = 6371000;
@@ -272,6 +401,7 @@
               }
 
               var participant = participantStats[deviceId];
+              updateRouteDetails(lat, lon, altitude, speed);
 
               var fixTime = new Date(pos.deviceTime || pos.fixTime).getTime();
               var timeDiff = (currentTime - fixTime) / 1000; // selisih dalam detik
