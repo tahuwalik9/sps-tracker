@@ -100,6 +100,23 @@
         color: #2c3e50;
         font-weight: bold;
       }
+      .search-wrap {
+        padding: 10px 15px 0;
+        background: #fff;
+      }
+      #participant-search {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid #d7dce0;
+        border-radius: 4px;
+        font-size: 13px;
+        outline: none;
+      }
+      #participant-search:focus {
+        border-color: #2980b9;
+        box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.15);
+      }
       .participant-item:hover {
         background: #e9ecef;
       }
@@ -203,6 +220,9 @@
           <h4>Leaderboard jarak</h4>
           <div id="leaderboard-list">Menunggu data tracking...</div>
         </div>
+        <div class="search-wrap">
+          <input id="participant-search" type="search" placeholder="Cari nama peserta..." autocomplete="off" />
+        </div>
         <ul id="participant-list">
           <!-- Data peserta akan dimasukkan secara otomatis oleh JavaScript -->
         </ul>
@@ -283,6 +303,7 @@
       var participantStats = {};
       var markerColors = ["#16a085", "#8e44ad", "#d35400", "#2980b9", "#c0392b", "#27ae60"];
       var staleAfterSeconds = 300;
+      var latestParticipants = [];
 
       function renderRouteChart() {
         var chart = document.getElementById("route-chart");
@@ -341,12 +362,21 @@
                 (participant, index) => `
                   <div class="leaderboard-row">
                     <span class="leaderboard-rank">#${index + 1}</span>
-                    <span class="leaderboard-name" style="color:${participant.color}">${participant.deviceId}</span>
+                    <span class="leaderboard-name" style="color:${participant.color}">${participant.name}</span>
                     <span class="leaderboard-distance">${(participant.distance / 1000).toFixed(2)} km</span>
                   </div>`,
               )
               .join("")
           : "Menunggu data tracking...";
+      }
+
+      function renderParticipantList() {
+        var query = document.getElementById("participant-search").value.trim().toLowerCase();
+        var listContainer = document.getElementById("participant-list");
+        listContainer.innerHTML = "";
+        latestParticipants
+          .filter((participant) => participant.searchText.includes(query))
+          .forEach((participant) => listContainer.appendChild(participant.element));
       }
 
       function fetchGPSData() {
@@ -365,13 +395,12 @@
             document.getElementById("connection-status").innerText =
               `Status: Terhubung (Live) - ${data.length} peserta`;
 
-            var listContainer = document.getElementById("participant-list");
-            listContainer.innerHTML = "";
-
             var currentTime = new Date().getTime();
+            latestParticipants = [];
 
             data.forEach((pos) => {
               var deviceId = pos.deviceId;
+              var participantName = pos.deviceName || `Peserta ${deviceId}`;
               var lat = pos.latitude;
               var lon = pos.longitude;
               var speed = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi knot ke km/h
@@ -380,6 +409,7 @@
               if (!participantStats[deviceId]) {
                 participantStats[deviceId] = {
                   deviceId: deviceId,
+                  name: participantName,
                   color: markerColors[Object.keys(participantStats).length % markerColors.length],
                   distance: 0,
                   maxAltitude: altitude,
@@ -402,6 +432,7 @@
               }
 
               var participant = participantStats[deviceId];
+              participant.name = participantName;
               updateRouteDetails(lat, lon, altitude, speed);
 
               var fixTime = new Date(pos.deviceTime || pos.fixTime).getTime();
@@ -428,7 +459,8 @@
 
               // Update isi Popup Marker
               markers[deviceId].bindPopup(`
-                        <b>Peserta ID:</b> ${deviceId}<br>
+                        <b>Peserta:</b> ${participantName}<br>
+                        <b>ID:</b> ${deviceId}<br>
                         Kecepatan: ${speed} km/h<br>
                         Elevasi saat ini: ${altitude} mdpl<br>
                         Elevasi maksimum: ${participant.maxAltitude} mdpl<br>
@@ -439,7 +471,8 @@
               var listItem = document.createElement("li");
               listItem.className = "participant-item";
               listItem.innerHTML = `
-                        <div class="participant-name">Peserta ID: ${deviceId}</div>
+                        <div class="participant-name">${participantName}</div>
+                        <div class="participant-details">ID perangkat: ${deviceId}</div>
                         <div class="participant-details">
                             Status: ${statusText}<br>
                             Kecepatan: <b>${speed} km/h</b><br>
@@ -454,8 +487,12 @@
                 markers[deviceId].openPopup();
               };
 
-              listContainer.appendChild(listItem);
+              latestParticipants.push({
+                element: listItem,
+                searchText: `${participantName} ${deviceId}`.toLowerCase(),
+              });
             });
+            renderParticipantList();
             renderLeaderboard();
           })
           .catch((error) => {
@@ -467,6 +504,7 @@
 
       // Ambil data GPS secara berkala setiap 5 detik
       setInterval(fetchGPSData, 5000);
+      document.getElementById("participant-search").addEventListener("input", renderParticipantList);
       fetchGPSData();
     </script>
   </body>

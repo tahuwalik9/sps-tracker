@@ -27,22 +27,35 @@ export default async function handler(req, res) {
   const credentials = Buffer.from(`${username}:${password}`).toString("base64");
 
   try {
-    const response = await fetch(TRACCAR_URL, {
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        Accept: "application/json",
-      },
-    });
+    const headers = {
+      Authorization: `Basic ${credentials}`,
+      Accept: "application/json",
+    };
+    const devicesUrl = TRACCAR_URL.replace(/\/positions\/?$/, "/devices");
+    const [response, devicesResponse] = await Promise.all([
+      fetch(TRACCAR_URL, { headers }),
+      fetch(devicesUrl, { headers }),
+    ]);
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: `Traccar mengembalikan HTTP ${response.status}`,
+    if (!response.ok || !devicesResponse.ok) {
+      const status = !response.ok ? response.status : devicesResponse.status;
+      return res.status(status).json({
+        error: `Traccar mengembalikan HTTP ${status}`,
       });
     }
 
     const data = await response.json();
+    const devices = await devicesResponse.json();
+    const deviceNames = Object.fromEntries(
+      devices.map((device) => [device.id, device.name || device.uniqueId]),
+    );
 
-    return res.status(200).json(data);
+    return res.status(200).json(
+      data.map((position) => ({
+        ...position,
+        deviceName: deviceNames[position.deviceId] || `Peserta ${position.deviceId}`,
+      })),
+    );
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
