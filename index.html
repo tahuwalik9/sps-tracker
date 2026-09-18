@@ -135,25 +135,21 @@
         })
         .addTo(map);
 
-      // 3. Konfigurasi Autentikasi Menggunakan Username 'admin'
+      // 3. Logika Live Tracking dengan Menyisipkan Kredensial Langsung ke URL
       var markers = {};
-      const TRACCAR_URL = "https://traccar-production-ff17.up.railway.app";
-
-      // Menggunakan username 'admin' sesuai panel pengaturan Traccar
-      const credentials = btoa("admin:admin14#");
-      const AUTH_HEADER = "Basic " + credentials;
 
       function fetchGPSData() {
-        const targetUrl = `${TRACCAR_URL}/api/positions`;
+        // Password mengandung '#' yang di-encode menjadi '%23' agar aman di dalam URL
+        // Format: https://username:password@domain/api/positions
+        const targetUrl =
+          "https://admin:admin14%23@traccar-production-ff17.up.railway.app/api/positions";
         const proxyUrl =
           "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
 
         fetch(proxyUrl, {
           method: "GET",
           headers: {
-            Authorization: AUTH_HEADER,
             Accept: "application/json",
-            "Content-Type": "application/json",
           },
         })
           .then((response) => {
