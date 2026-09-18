@@ -138,13 +138,24 @@
       // 3. Logika Live Tracking & Deteksi Status Offline/Online
       var markers = {};
       const TRACCAR_URL = "https://traccar-production-ff17.up.railway.app";
+      // Menggunakan kredensial akun admin Anda
       const AUTH_HEADER = "Basic " + btoa("walikt9@gmail.com:admin14#");
 
       function fetchGPSData() {
         fetch(`${TRACCAR_URL}/api/positions`, {
-          headers: { Authorization: AUTH_HEADER },
+          method: "GET",
+          headers: {
+            Authorization: AUTH_HEADER,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         })
-          .then((response) => response.json())
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Gagal terhubung: " + response.status);
+            }
+            return response.json();
+          })
           .then((data) => {
             document.getElementById("connection-status").innerText =
               "Status: Terhubung (Live)";
@@ -161,7 +172,6 @@
               var speed = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi knot ke km/h
               var altitude = pos.altitude ? Math.round(pos.altitude) : 0; // Elevasi dalam meter
 
-              // Cek waktu terakhir sinyal GPS dikirim (dalam milidetik)
               var fixTime = new Date(pos.deviceTime || pos.fixTime).getTime();
               var timeDiff = (currentTime - fixTime) / 1000; // selisih dalam detik
 
