@@ -25,7 +25,7 @@
 
       /* Panel Sidebar di sebelah kiri */
       #sidebar {
-        width: 320px;
+        width: 360px;
         background: #f8f9fa;
         border-right: 1px solid #ddd;
         display: flex;
@@ -61,6 +61,44 @@
         border-bottom: 1px solid #eee;
         cursor: pointer;
         transition: background 0.2s;
+      }
+      .leaderboard {
+        padding: 12px 15px;
+        border-bottom: 1px solid #ddd;
+        background: #fff;
+      }
+      .leaderboard h4 {
+        margin: 0 0 8px;
+        color: #2c3e50;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .leaderboard-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 5px 0;
+        font-size: 12px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .leaderboard-row:last-child {
+        border-bottom: 0;
+      }
+      .leaderboard-rank {
+        width: 24px;
+        color: #7f8c8d;
+        font-weight: bold;
+      }
+      .leaderboard-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .leaderboard-distance {
+        color: #2c3e50;
+        font-weight: bold;
       }
       .participant-item:hover {
         background: #e9ecef;
@@ -100,6 +138,10 @@
           <h3>🚴 Live Tracking Peserta</h3>
           <p id="connection-status">Menghubungkan ke server...</p>
         </div>
+        <div class="leaderboard">
+          <h4>Leaderboard jarak</h4>
+          <div id="leaderboard-list">Menunggu data tracking...</div>
+        </div>
         <ul id="participant-list">
           <!-- Data peserta akan dimasukkan secara otomatis oleh JavaScript -->
         </ul>
@@ -111,9 +153,6 @@
 
     <!-- Script Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Script Plugin Leaflet-GPX untuk memuat file rute.gpx -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
-
     <script>
       // 1. Inisialisasi Peta
       var map = L.map("map").setView([-6.2, 106.816666], 13);
@@ -123,20 +162,62 @@
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      // 2. Memuat Garis Rute dari File rute.gpx
-      var gpxPath = "rute.gpx";
-      new L.GPX(gpxPath, {
-        async: true,
-        marker_options: { startIcon: null, endIcon: null },
-        polyline_options: { color: "red", weight: 4, opacity: 0.8 },
-      })
-        .on("loaded", function (e) {
-          map.fitBounds(e.target.getBounds());
+      // 2. Gambar rute GPX sebagai garis tanpa waypoint atau label otomatis.
+      fetch("rute.gpx")
+        .then((response) => response.text())
+        .then((gpxText) => {
+          var xml = new DOMParser().parseFromString(gpxText, "application/xml");
+          var routePoints = Array.from(xml.querySelectorAll("trkpt")).map((point) => [
+            Number(point.getAttribute("lat")),
+            Number(point.getAttribute("lon")),
+          ]);
+
+          if (routePoints.length > 1) {
+            var route = L.polyline(routePoints, {
+              color: "#e74c3c",
+              weight: 4,
+              opacity: 0.8,
+            }).addTo(map);
+            map.fitBounds(route.getBounds());
+          }
         })
-        .addTo(map);
+        .catch((error) => console.error("Gagal memuat rute GPX:", error));
 
       // 3. Logika Live Tracking menggunakan API Vercel Serverless
       var markers = {};
+      var participantStats = {};
+      var markerColors = ["#16a085", "#8e44ad", "#d35400", "#2980b9", "#c0392b", "#27ae60"];
+
+      function distanceInMeters(firstLat, firstLon, secondLat, secondLon) {
+        var earthRadius = 6371000;
+        var latitudeDelta = ((secondLat - firstLat) * Math.PI) / 180;
+        var longitudeDelta = ((secondLon - firstLon) * Math.PI) / 180;
+        var a =
+          Math.sin(latitudeDelta / 2) ** 2 +
+          Math.cos((firstLat * Math.PI) / 180) *
+            Math.cos((secondLat * Math.PI) / 180) *
+            Math.sin(longitudeDelta / 2) ** 2;
+        return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      function renderLeaderboard() {
+        var leaderboard = Object.values(participantStats).sort(
+          (first, second) => second.distance - first.distance,
+        );
+        var container = document.getElementById("leaderboard-list");
+        container.innerHTML = leaderboard.length
+          ? leaderboard
+              .map(
+                (participant, index) => `
+                  <div class="leaderboard-row">
+                    <span class="leaderboard-rank">#${index + 1}</span>
+                    <span class="leaderboard-name" style="color:${participant.color}">${participant.deviceId}</span>
+                    <span class="leaderboard-distance">${(participant.distance / 1000).toFixed(2)} km</span>
+                  </div>`,
+              )
+              .join("")
+          : "Menunggu data tracking...";
+      }
 
       function fetchGPSData() {
         fetch("/api/positions")
@@ -166,6 +247,32 @@
               var speed = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi knot ke km/h
               var altitude = pos.altitude ? Math.round(pos.altitude) : 0; // Elevasi dalam meter
 
+              if (!participantStats[deviceId]) {
+                participantStats[deviceId] = {
+                  deviceId: deviceId,
+                  color: markerColors[Object.keys(participantStats).length % markerColors.length],
+                  distance: 0,
+                  maxAltitude: altitude,
+                  previousLatitude: lat,
+                  previousLongitude: lon,
+                };
+              } else {
+                participantStats[deviceId].distance += distanceInMeters(
+                  participantStats[deviceId].previousLatitude,
+                  participantStats[deviceId].previousLongitude,
+                  lat,
+                  lon,
+                );
+                participantStats[deviceId].maxAltitude = Math.max(
+                  participantStats[deviceId].maxAltitude,
+                  altitude,
+                );
+                participantStats[deviceId].previousLatitude = lat;
+                participantStats[deviceId].previousLongitude = lon;
+              }
+
+              var participant = participantStats[deviceId];
+
               var fixTime = new Date(pos.deviceTime || pos.fixTime).getTime();
               var timeDiff = (currentTime - fixTime) / 1000; // selisih dalam detik
 
@@ -181,7 +288,7 @@
                 markers[deviceId] = L.marker([lat, lon], {
                   icon: L.divIcon({
                     className: "custom-marker",
-                    html: `<div style="background:${isOffline ? "#c0392b" : "#27ae60"}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+                    html: `<div style="background:${participant.color}; opacity:${isOffline ? 0.55 : 1}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
                     iconSize: [14, 14],
                     iconAnchor: [7, 7],
                   }),
@@ -192,7 +299,9 @@
               markers[deviceId].bindPopup(`
                         <b>Peserta ID:</b> ${deviceId}<br>
                         Kecepatan: ${speed} km/h<br>
-                        Elevasi: ${altitude} mdpl
+                        Elevasi saat ini: ${altitude} mdpl<br>
+                        Elevasi maksimum: ${participant.maxAltitude} mdpl<br>
+                        Jarak terlacak: ${(participant.distance / 1000).toFixed(2)} km
                     `);
 
               // Tambahkan ke Sidebar List dengan detail lengkap
@@ -202,7 +311,9 @@
                         <div class="participant-name">Peserta ID: ${deviceId}</div>
                         <div class="participant-details">
                             Status: ${statusText}<br>
-                            Kecepatan: <b>${speed} km/h</b> | Elevasi: <b>${altitude} m</b>
+                            Kecepatan: <b>${speed} km/h</b><br>
+                            Elevasi: <b>${altitude} mdpl</b> (maks. ${participant.maxAltitude} mdpl)<br>
+                            Jarak terlacak: <b>${(participant.distance / 1000).toFixed(2)} km</b>
                         </div>
                     `;
 
@@ -214,6 +325,7 @@
 
               listContainer.appendChild(listItem);
             });
+            renderLeaderboard();
           })
           .catch((error) => {
             console.error("Gagal mengambil data:", error);
