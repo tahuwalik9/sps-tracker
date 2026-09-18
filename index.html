@@ -135,23 +135,12 @@
         })
         .addTo(map);
 
-      // 3. Logika Live Tracking dengan Menyisipkan Kredensial Langsung ke URL
+      // 3. Logika Live Tracking menggunakan Vercel Serverless API
       var markers = {};
 
       function fetchGPSData() {
-        // Password mengandung '#' yang di-encode menjadi '%23' agar aman di dalam URL
-        // Format: https://username:password@domain/api/positions
-        const targetUrl =
-          "https://admin:admin14%23@traccar-production-ff17.up.railway.app/api/positions";
-        const proxyUrl =
-          "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-
-        fetch(proxyUrl, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-        })
+        // Mengambil data melalui API internal Vercel (bebas CORS & aman)
+        fetch("/api/positions")
           .then((response) => {
             if (!response.ok) {
               throw new Error("HTTP error! status: " + response.status);
@@ -171,18 +160,17 @@
               var deviceId = pos.deviceId;
               var lat = pos.latitude;
               var lon = pos.longitude;
-              var speed = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi knot ke km/h
-              var altitude = pos.altitude ? Math.round(pos.altitude) : 0; // Elevasi dalam meter
+              var speed = pos.speed ? Math.round(pos.speed * 1.852) : 0;
+              var altitude = pos.altitude ? Math.round(pos.altitude) : 0;
 
               var fixTime = new Date(pos.deviceTime || pos.fixTime).getTime();
-              var timeDiff = (currentTime - fixTime) / 1000; // selisih dalam detik
+              var timeDiff = (currentTime - fixTime) / 1000;
 
               var isOffline = timeDiff > 30;
               var statusText = isOffline
                 ? '<span class="status-offline">🔴 Di luar jangkauan / GPS Mati</span>'
                 : '<span class="status-online">🟢 Aktif (Online)</span>';
 
-              // Update atau buat Marker Peserta di Peta
               if (markers[deviceId]) {
                 markers[deviceId].setLatLng([lat, lon]);
               } else {
@@ -196,14 +184,12 @@
                 }).addTo(map);
               }
 
-              // Update isi Popup Marker
               markers[deviceId].bindPopup(`
                         <b>Peserta ID:</b> ${deviceId}<br>
                         Kecepatan: ${speed} km/h<br>
                         Elevasi: ${altitude} mdpl
                     `);
 
-              // Tambahkan ke Sidebar List dengan detail lengkap
               var listItem = document.createElement("li");
               listItem.className = "participant-item";
               listItem.innerHTML = `
@@ -214,7 +200,6 @@
                         </div>
                     `;
 
-              // Klik pada nama di sidebar akan mengarahkan peta ke lokasi peserta
               listItem.onclick = function () {
                 map.setView([lat, lon], 16);
                 markers[deviceId].openPopup();
