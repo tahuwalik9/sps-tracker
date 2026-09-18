@@ -2,13 +2,13 @@ export default async function handler(req, res) {
   const TRACCAR_URL =
     "https://traccar-production-ff17.up.railway.app/api/positions";
 
-  // Masukkan token Traccar Anda di sini
-  const TRACCAR_TOKEN = "MASUKKAN_TOKEN_ANDA_DI_SINI";
+  // Autentikasi menggunakan username admin dan password Anda
+  const credentials = Buffer.from("admin:admin14#").toString("base64");
 
   try {
     const response = await fetch(TRACCAR_URL, {
       headers: {
-        Authorization: `Bearer ${TRACCAR_TOKEN}`,
+        Authorization: `Basic ${credentials}`,
         Accept: "application/json",
       },
     });
