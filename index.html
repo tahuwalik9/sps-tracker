@@ -239,7 +239,7 @@
       var routePoints = [];
       var routeDistances = [];
       var routeElevations = [];
-      fetch("rute.gpx")
+      fetch("ARTJOG_ADX_100KM.gpx")
         .then((response) => response.text())
         .then((gpxText) => {
           var xml = new DOMParser().parseFromString(gpxText, "application/xml");
