@@ -135,10 +135,13 @@
         })
         .addTo(map);
 
-      // 3. Logika Live Tracking & Deteksi Status Offline/Online dengan CORS Proxy & Encode
+      // 3. Konfigurasi Autentikasi Menggunakan Username 'admin'
       var markers = {};
       const TRACCAR_URL = "https://traccar-production-ff17.up.railway.app";
-      const AUTH_HEADER = "Basic " + btoa("walikt9@gmail.com:admin14#");
+
+      // Menggunakan username 'admin' sesuai panel pengaturan Traccar
+      const credentials = btoa("admin:admin14#");
+      const AUTH_HEADER = "Basic " + credentials;
 
       function fetchGPSData() {
         const targetUrl = `${TRACCAR_URL}/api/positions`;
@@ -150,11 +153,12 @@
           headers: {
             Authorization: AUTH_HEADER,
             Accept: "application/json",
+            "Content-Type": "application/json",
           },
         })
           .then((response) => {
             if (!response.ok) {
-              throw new Error("Gagal terhubung: " + response.status);
+              throw new Error("HTTP error! status: " + response.status);
             }
             return response.json();
           })
