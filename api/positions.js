@@ -2,13 +2,13 @@ export default async function handler(req, res) {
   const TRACCAR_URL =
     "https://traccar-production-ff17.up.railway.app/api/positions";
 
-  // Kredensial aman di sisi server Vercel
-  const credentials = Buffer.from("admin:admin14#").toString("base64");
+  // Masukkan token Traccar Anda di sini
+  const TRACCAR_TOKEN = "MASUKKAN_TOKEN_ANDA_DI_SINI";
 
   try {
     const response = await fetch(TRACCAR_URL, {
       headers: {
-        Authorization: `Basic ${credentials}`,
+        Authorization: `Bearer ${TRACCAR_TOKEN}`,
         Accept: "application/json",
       },
     });
@@ -21,7 +21,6 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Izinkan akses dari frontend Anda
     res.setHeader("Access-Control-Allow-Origin", "*");
     return res.status(200).json(data);
   } catch (error) {
