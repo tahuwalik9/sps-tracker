@@ -147,8 +147,12 @@
             return response.json();
           })
           .then((data) => {
+            if (!Array.isArray(data)) {
+              throw new Error(data.error || "Format data dari server tidak valid");
+            }
+
             document.getElementById("connection-status").innerText =
-              "Status: Terhubung (Live)";
+              `Status: Terhubung (Live) - ${data.length} peserta`;
 
             var listContainer = document.getElementById("participant-list");
             listContainer.innerHTML = "";
@@ -214,7 +218,7 @@
           .catch((error) => {
             console.error("Gagal mengambil data:", error);
             document.getElementById("connection-status").innerText =
-              "Status: Terputus dari Server";
+              `Status: Terputus - ${error.message}`;
           });
       }
 
