@@ -282,6 +282,7 @@
       var markers = {};
       var participantStats = {};
       var markerColors = ["#16a085", "#8e44ad", "#d35400", "#2980b9", "#c0392b", "#27ae60"];
+      var staleAfterSeconds = 300;
 
       function renderRouteChart() {
         var chart = document.getElementById("route-chart");
@@ -406,9 +407,9 @@
               var fixTime = new Date(pos.deviceTime || pos.fixTime).getTime();
               var timeDiff = (currentTime - fixTime) / 1000; // selisih dalam detik
 
-              var isOffline = timeDiff > 30;
+              var isOffline = timeDiff > staleAfterSeconds;
               var statusText = isOffline
-                ? '<span class="status-offline">🔴 Di luar jangkauan / GPS Mati</span>'
+                ? '<span class="status-offline">🔴 Tidak ada pembaruan lokasi</span>'
                 : '<span class="status-online">🟢 Aktif (Online)</span>';
 
               // Update atau buat Marker Peserta di Peta
