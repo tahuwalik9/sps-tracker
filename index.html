@@ -440,8 +440,8 @@
         chart.innerHTML = `<polygon points="0,90 ${points} 800,90" fill="#235b82"></polygon><polyline points="${points}" fill="none" stroke="#43a8ef" stroke-width="2"></polyline>`;
       }
 
-      function updateRouteDetails(latitude, longitude, altitude, speed) {
-        if (routePoints.length < 2) return;
+      function getRoutePosition(latitude, longitude) {
+        if (routePoints.length < 2) return null;
         var nearestIndex = 0;
         var nearestDistance = Infinity;
         routePoints.forEach((point, index) => {
@@ -460,8 +460,25 @@
         var progress = routeDistance
           ? (routeDistances[nearestIndex] / routeDistance) * 100
           : 0;
+        return {
+          progress: progress,
+          nearestDistance: nearestDistance,
+          remainingDistance: Math.max(0, routeDistance - routeDistances[nearestIndex]),
+        };
+      }
+
+      function formatDuration(milliseconds) {
+        var totalMinutes = Math.max(0, Math.floor(milliseconds / 60000));
+        var hours = Math.floor(totalMinutes / 60);
+        var minutes = totalMinutes % 60;
+        return `${String(hours).padStart(2, "0")}u ${String(minutes).padStart(2, "0")}m`;
+      }
+
+      function updateRouteDetails(latitude, longitude, altitude, speed) {
+        var routePosition = getRoutePosition(latitude, longitude);
+        if (!routePosition) return;
         document.getElementById("route-progress").textContent =
-          `${progress.toFixed(0)}% (±${Math.round(nearestDistance)} m)`;
+          `${routePosition.progress.toFixed(0)}% (±${Math.round(routePosition.nearestDistance)} m)`;
         document.getElementById("route-elevation").textContent =
           `${Math.round(altitude)} mdpl`;
         document.getElementById("route-speed").textContent = `${speed} km/h`;
@@ -561,6 +578,10 @@
               var lon = pos.longitude;
               var speed = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi knot ke km/h
               var altitude = pos.altitude ? Math.round(pos.altitude) : 0; // Elevasi dalam meter
+              var positionTimestamp = new Date(
+                pos.deviceTime || pos.fixTime || Date.now(),
+              ).getTime();
+              var routePosition = getRoutePosition(lat, lon);
 
               if (!participantStats[deviceId]) {
                 participantStats[deviceId] = {
@@ -574,6 +595,8 @@
                   maxAltitude: altitude,
                   previousLatitude: lat,
                   previousLongitude: lon,
+                  firstTimestamp: positionTimestamp,
+                  latestTimestamp: positionTimestamp,
                 };
               } else {
                 participantStats[deviceId].distance += distanceInMeters(
@@ -581,6 +604,10 @@
                   participantStats[deviceId].previousLongitude,
                   lat,
                   lon,
+                );
+                participantStats[deviceId].latestTimestamp = Math.max(
+                  participantStats[deviceId].latestTimestamp,
+                  positionTimestamp,
                 );
                 participantStats[deviceId].maxAltitude = Math.max(
                   participantStats[deviceId].maxAltitude,
@@ -593,6 +620,12 @@
               var participant = participantStats[deviceId];
               participant.name = participantName;
               updateRouteDetails(lat, lon, altitude, speed);
+              var totalRunningTime = formatDuration(
+                participant.latestTimestamp - participant.firstTimestamp,
+              );
+              var remainingDistance = routePosition
+                ? `${(routePosition.remainingDistance / 1000).toFixed(2)} km`
+                : "-";
 
               var isOffline = pos.deviceStatus === "offline";
               var statusText = isOffline
@@ -617,10 +650,11 @@
               markers[deviceId].bindPopup(`
                         <b>Peserta:</b> ${participantName}<br>
                         <b>ID:</b> ${deviceId}<br>
+                        Status: ${isOffline ? "Offline" : "Online"}<br>
                         Kecepatan: ${speed} km/h<br>
-                        Elevasi saat ini: ${altitude} mdpl<br>
-                        Elevasi maksimum: ${participant.maxAltitude} mdpl<br>
-                        Jarak terlacak: ${(participant.distance / 1000).toFixed(2)} km
+                        Waktu total berjalan: ${totalRunningTime}<br>
+                        Total jarak terlacak: ${(participant.distance / 1000).toFixed(2)} km<br>
+                        Total sisa jarak: ${remainingDistance}
                     `);
 
               // Tambahkan ke Sidebar List dengan detail lengkap
@@ -632,8 +666,9 @@
                         <div class="participant-details">
                             Status: ${statusText}<br>
                             Kecepatan: <b>${speed} km/h</b><br>
-                            Elevasi: <b>${altitude} mdpl</b> (maks. ${participant.maxAltitude} mdpl)<br>
-                            Jarak terlacak: <b>${(participant.distance / 1000).toFixed(2)} km</b>
+                          Waktu total berjalan: <b>${totalRunningTime}</b><br>
+                          Total jarak terlacak: <b>${(participant.distance / 1000).toFixed(2)} km</b><br>
+                          Total sisa jarak: <b>${remainingDistance}</b>
                         </div>
                     `;
 
