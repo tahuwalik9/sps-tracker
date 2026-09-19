@@ -231,7 +231,10 @@
       async function loginAdmin(username, password) {
         var response = await fetch("/api/admin-login", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
           body: JSON.stringify({ username, password }),
         });
         var body = await response.json().catch(() => ({}));
@@ -462,7 +465,6 @@
             document.getElementById("result").textContent = error.message;
           }
         });
-
     </script>
   </body>
 </html>

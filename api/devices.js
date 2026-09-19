@@ -7,11 +7,23 @@ function isValidSession(req) {
   if (!secret || !token) return false;
   const [encoded, signature] = token.split(".");
   if (!encoded || !signature) return false;
-  const expected = crypto.createHmac("sha256", secret).update(encoded).digest("base64url");
-  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false;
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(encoded)
+    .digest("base64url");
+  if (
+    signature.length !== expected.length ||
+    !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+  )
+    return false;
   try {
-    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
-    return payload.exp > Date.now() && payload.username === process.env.ADMIN_USERNAME;
+    const payload = JSON.parse(
+      Buffer.from(encoded, "base64url").toString("utf8"),
+    );
+    return (
+      payload.exp > Date.now() &&
+      payload.username === process.env.ADMIN_USERNAME
+    );
   } catch {
     return false;
   }
