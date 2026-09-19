@@ -1,6 +1,9 @@
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS",
+  );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(204).end();
@@ -33,7 +36,10 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const response = await fetch(devicesUrl, {
-        headers: { Authorization: traccarAuthorization, Accept: "application/json" },
+        headers: {
+          Authorization: traccarAuthorization,
+          Accept: "application/json",
+        },
       });
       const body = await response.json().catch(() => ({}));
       return res.status(response.status).json(body);
@@ -45,21 +51,36 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "DELETE") {
-      const response = await fetch(`${devicesUrl}/${encodeURIComponent(deviceId)}`, {
-        method: "DELETE",
-        headers: { Authorization: traccarAuthorization, Accept: "application/json" },
-      });
+      const response = await fetch(
+        `${devicesUrl}/${encodeURIComponent(deviceId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: traccarAuthorization,
+            Accept: "application/json",
+          },
+        },
+      );
       return res.status(response.status).json({ ok: response.ok });
     }
 
     const devices = Array.isArray(req.body) ? req.body : [req.body];
-    if (!devices.length || devices.some((device) => !device?.name || !device?.uniqueId)) {
-      return res.status(400).json({ error: "Setiap device wajib memiliki name dan uniqueId/BIB" });
+    if (
+      !devices.length ||
+      devices.some((device) => !device?.name || !device?.uniqueId)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Setiap device wajib memiliki name dan uniqueId/BIB" });
     }
 
     const results = [];
     for (const device of devices) {
-      const response = await fetch(devicesUrl, {
+      const targetUrl =
+        req.method === "PUT"
+          ? `${devicesUrl}/${encodeURIComponent(deviceId || device.id)}`
+          : devicesUrl;
+      const response = await fetch(targetUrl, {
         method: req.method === "PUT" ? "PUT" : "POST",
         headers: {
           Authorization: traccarAuthorization,
