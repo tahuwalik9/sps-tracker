@@ -100,6 +100,38 @@
         color: #2c3e50;
         font-weight: bold;
       }
+      .sidebar-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding: 10px 15px 0;
+        background: #fff;
+      }
+      .sidebar-tab {
+        padding: 8px 6px;
+        border: 1px solid #d7dce0;
+        border-bottom: 0;
+        border-radius: 4px 4px 0 0;
+        background: #f4f6f8;
+        color: #52606d;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .sidebar-tab.active {
+        background: #fff;
+        color: #2c3e50;
+        border-top: 2px solid #2980b9;
+      }
+      .sidebar-view {
+        display: none;
+        min-height: 0;
+        flex: 1;
+      }
+      .sidebar-view.active {
+        display: flex;
+        flex-direction: column;
+      }
       .search-wrap {
         padding: 10px 15px 0;
         background: #fff;
@@ -239,19 +271,32 @@
       <!-- Sidebar Daftar Peserta -->
       <div id="sidebar">
         <div class="sidebar-header">
-          <h3>🚴 Live Tracking Peserta</h3>
+          <h3>Live Tracking Peserta</h3>
           <p id="connection-status">Menghubungkan ke server...</p>
         </div>
-        <div class="leaderboard">
-          <h4>Leaderboard jarak</h4>
-          <div id="leaderboard-list">Menunggu data tracking...</div>
+        <div class="sidebar-tabs" role="tablist" aria-label="Tampilan peserta">
+          <button class="sidebar-tab active" id="participants-tab" type="button" role="tab" aria-selected="true">Semua peserta</button>
+          <button class="sidebar-tab" id="leaderboard-tab" type="button" role="tab" aria-selected="false">Leaderboard</button>
         </div>
-        <div class="search-wrap">
-          <input id="participant-search" type="search" placeholder="Cari nama peserta..." autocomplete="off" />
+        <div class="sidebar-view active" id="participants-view" role="tabpanel">
+          <div class="search-wrap">
+            <input
+              id="participant-search"
+              type="search"
+              placeholder="Cari nama peserta..."
+              autocomplete="off"
+            />
+          </div>
+          <ul id="participant-list">
+            <!-- Data peserta akan dimasukkan secara otomatis oleh JavaScript -->
+          </ul>
         </div>
-        <ul id="participant-list">
-          <!-- Data peserta akan dimasukkan secara otomatis oleh JavaScript -->
-        </ul>
+        <div class="sidebar-view" id="leaderboard-view" role="tabpanel">
+          <div class="leaderboard">
+            <h4>Leaderboard jarak</h4>
+            <div id="leaderboard-list">Menunggu data tracking...</div>
+          </div>
+        </div>
       </div>
 
       <!-- Peta Leaflet -->
@@ -259,14 +304,30 @@
     </div>
     <section id="route-panel" aria-label="Detail rute">
       <div class="route-summary">
-        <div><span>Jarak rute</span><strong id="route-distance">Menghitung...</strong></div>
-        <div><span>Posisi peserta</span><strong id="route-progress">Menunggu...</strong></div>
-        <div><span>Elevasi live</span><strong id="route-elevation">-</strong></div>
+        <div>
+          <span>Jarak rute</span
+          ><strong id="route-distance">Menghitung...</strong>
+        </div>
+        <div>
+          <span>Posisi peserta</span
+          ><strong id="route-progress">Menunggu...</strong>
+        </div>
+        <div>
+          <span>Elevasi live</span><strong id="route-elevation">-</strong>
+        </div>
         <div><span>Kecepatan</span><strong id="route-speed">-</strong></div>
       </div>
       <div class="route-chart-wrap">
-        <div class="route-chart-title" id="route-chart-title">Profil elevasi rute</div>
-        <svg id="route-chart" viewBox="0 0 800 90" preserveAspectRatio="none" role="img" aria-label="Profil elevasi rute"></svg>
+        <div class="route-chart-title" id="route-chart-title">
+          Profil elevasi rute
+        </div>
+        <svg
+          id="route-chart"
+          viewBox="0 0 800 90"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="Profil elevasi rute"
+        ></svg>
       </div>
     </section>
 
@@ -289,14 +350,18 @@
         .then((response) => response.text())
         .then((gpxText) => {
           var xml = new DOMParser().parseFromString(gpxText, "application/xml");
-          routePoints = Array.from(xml.querySelectorAll("trkpt")).map((point) => [
-            Number(point.getAttribute("lat")),
-            Number(point.getAttribute("lon")),
-          ]);
-          routeElevations = Array.from(xml.querySelectorAll("trkpt")).map((point) => {
-            var elevation = point.querySelector("ele");
-            return elevation ? Number(elevation.textContent) : null;
-          });
+          routePoints = Array.from(xml.querySelectorAll("trkpt")).map(
+            (point) => [
+              Number(point.getAttribute("lat")),
+              Number(point.getAttribute("lon")),
+            ],
+          );
+          routeElevations = Array.from(xml.querySelectorAll("trkpt")).map(
+            (point) => {
+              var elevation = point.querySelector("ele");
+              return elevation ? Number(elevation.textContent) : null;
+            },
+          );
           routeDistances = [0];
           for (var index = 1; index < routePoints.length; index += 1) {
             routeDistances.push(
@@ -327,12 +392,22 @@
       // 3. Logika Live Tracking menggunakan API Vercel Serverless
       var markers = {};
       var participantStats = {};
-      var markerColors = ["#16a085", "#8e44ad", "#d35400", "#2980b9", "#c0392b", "#27ae60"];
+      var markerColors = [
+        "#16a085",
+        "#8e44ad",
+        "#d35400",
+        "#2980b9",
+        "#c0392b",
+        "#27ae60",
+      ];
       var latestParticipants = [];
 
       function renderRouteChart() {
         var chart = document.getElementById("route-chart");
-        if (!routeElevations.length || routeElevations.some((value) => value === null)) {
+        if (
+          !routeElevations.length ||
+          routeElevations.some((value) => value === null)
+        ) {
           chart.innerHTML =
             '<text x="400" y="48" text-anchor="middle" fill="#8193a3" font-size="12">Data elevasi belum tersedia di rute GPX</text>';
           return;
@@ -341,7 +416,10 @@
         var maximum = Math.max(...routeElevations);
         var range = maximum - minimum || 1;
         var points = routeElevations
-          .map((elevation, index) => `${(index / (routeElevations.length - 1)) * 800},${82 - ((elevation - minimum) / range) * 70}`)
+          .map(
+            (elevation, index) =>
+              `${(index / (routeElevations.length - 1)) * 800},${82 - ((elevation - minimum) / range) * 70}`,
+          )
           .join(" ");
         chart.innerHTML = `<polygon points="0,90 ${points} 800,90" fill="#235b82"></polygon><polyline points="${points}" fill="none" stroke="#43a8ef" stroke-width="2"></polyline>`;
       }
@@ -351,16 +429,25 @@
         var nearestIndex = 0;
         var nearestDistance = Infinity;
         routePoints.forEach((point, index) => {
-          var distance = distanceInMeters(latitude, longitude, point[0], point[1]);
+          var distance = distanceInMeters(
+            latitude,
+            longitude,
+            point[0],
+            point[1],
+          );
           if (distance < nearestDistance) {
             nearestDistance = distance;
             nearestIndex = index;
           }
         });
         var routeDistance = routeDistances[routeDistances.length - 1] || 0;
-        var progress = routeDistance ? (routeDistances[nearestIndex] / routeDistance) * 100 : 0;
-        document.getElementById("route-progress").textContent = `${progress.toFixed(0)}% (±${Math.round(nearestDistance)} m)`;
-        document.getElementById("route-elevation").textContent = `${Math.round(altitude)} mdpl`;
+        var progress = routeDistance
+          ? (routeDistances[nearestIndex] / routeDistance) * 100
+          : 0;
+        document.getElementById("route-progress").textContent =
+          `${progress.toFixed(0)}% (±${Math.round(nearestDistance)} m)`;
+        document.getElementById("route-elevation").textContent =
+          `${Math.round(altitude)} mdpl`;
         document.getElementById("route-speed").textContent = `${speed} km/h`;
       }
 
@@ -396,12 +483,39 @@
       }
 
       function renderParticipantList() {
-        var query = document.getElementById("participant-search").value.trim().toLowerCase();
+        var query = document
+          .getElementById("participant-search")
+          .value.trim()
+          .toLowerCase();
         var listContainer = document.getElementById("participant-list");
         listContainer.innerHTML = "";
         latestParticipants
           .filter((participant) => participant.searchText.includes(query))
-          .forEach((participant) => listContainer.appendChild(participant.element));
+          .forEach((participant) =>
+            listContainer.appendChild(participant.element),
+          );
+      }
+
+      function showSidebarView(viewName) {
+        var isLeaderboard = viewName === "leaderboard";
+        document
+          .getElementById("participants-view")
+          .classList.toggle("active", !isLeaderboard);
+        document
+          .getElementById("leaderboard-view")
+          .classList.toggle("active", isLeaderboard);
+        document
+          .getElementById("participants-tab")
+          .classList.toggle("active", !isLeaderboard);
+        document
+          .getElementById("leaderboard-tab")
+          .classList.toggle("active", isLeaderboard);
+        document
+          .getElementById("participants-tab")
+          .setAttribute("aria-selected", String(!isLeaderboard));
+        document
+          .getElementById("leaderboard-tab")
+          .setAttribute("aria-selected", String(isLeaderboard));
       }
 
       function fetchGPSData() {
@@ -414,7 +528,9 @@
           })
           .then((data) => {
             if (!Array.isArray(data)) {
-              throw new Error(data.error || "Format data dari server tidak valid");
+              throw new Error(
+                data.error || "Format data dari server tidak valid",
+              );
             }
 
             document.getElementById("connection-status").innerText =
@@ -434,7 +550,10 @@
                 participantStats[deviceId] = {
                   deviceId: deviceId,
                   name: participantName,
-                  color: markerColors[Object.keys(participantStats).length % markerColors.length],
+                  color:
+                    markerColors[
+                      Object.keys(participantStats).length % markerColors.length
+                    ],
                   distance: 0,
                   maxAltitude: altitude,
                   previousLatitude: lat,
@@ -525,7 +644,19 @@
 
       // Ambil data GPS secara berkala setiap 5 detik
       setInterval(fetchGPSData, 5000);
-      document.getElementById("participant-search").addEventListener("input", renderParticipantList);
+      document
+        .getElementById("participant-search")
+        .addEventListener("input", renderParticipantList);
+      document
+        .getElementById("participants-tab")
+        .addEventListener("click", function () {
+          showSidebarView("participants");
+        });
+      document
+        .getElementById("leaderboard-tab")
+        .addEventListener("click", function () {
+          showSidebarView("leaderboard");
+        });
       fetchGPSData();
     </script>
   </body>
