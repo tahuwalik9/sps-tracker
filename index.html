@@ -358,26 +358,53 @@
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      // 2. Gambar rute GPX sebagai garis tanpa waypoint atau label otomatis.
+      // 2. Gambar tiga rute KML dan marker checkpoint.
       var routePoints = [];
       var routeDistances = [];
       var routeElevations = [];
-      fetch("ARTJOG_ADX_100KM.gpx")
+      var routeColors = ["#e74c3c", "#2980b9", "#16a085"];
+      fetch("FINAL%20GA%20PAKAI%20REVISI.kml")
         .then((response) => response.text())
-        .then((gpxText) => {
-          var xml = new DOMParser().parseFromString(gpxText, "application/xml");
-          routePoints = Array.from(xml.querySelectorAll("trkpt")).map(
-            (point) => [
-              Number(point.getAttribute("lat")),
-              Number(point.getAttribute("lon")),
-            ],
-          );
-          routeElevations = Array.from(xml.querySelectorAll("trkpt")).map(
-            (point) => {
-              var elevation = point.querySelector("ele");
-              return elevation ? Number(elevation.textContent) : null;
-            },
-          );
+        .then((kmlText) => {
+          var xml = new DOMParser().parseFromString(kmlText, "application/xml");
+          var routeBounds = [];
+          var lineRoutes = Array.from(xml.querySelectorAll("LineString"));
+
+          lineRoutes.forEach((line, routeIndex) => {
+            var placemark = line.closest("Placemark");
+            var name = placemark?.querySelector("name")?.textContent || `Rute ${routeIndex + 1}`;
+            var coordinates = line.querySelector("coordinates")?.textContent.trim() || "";
+            var points = coordinates.split(/\s+/).map((coordinate) => {
+              var values = coordinate.split(",");
+              return [Number(values[1]), Number(values[0])];
+            }).filter((point) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+            var route = L.polyline(points, {
+              color: routeColors[routeIndex % routeColors.length],
+              weight: 4,
+              opacity: 0.8,
+            }).bindTooltip(name).addTo(map);
+            routeBounds.push(route.getBounds());
+            if (routeIndex === 0) routePoints = points;
+          });
+
+          Array.from(xml.querySelectorAll("Placemark")).forEach((placemark) => {
+            if (placemark.querySelector("LineString")) return;
+            var point = placemark.querySelector("Point coordinates")?.textContent.trim();
+            var name = placemark.querySelector("name")?.textContent.trim();
+            if (!point || !name) return;
+            var values = point.split(",");
+            var latitude = Number(values[1]);
+            var longitude = Number(values[0]);
+            if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+              L.circleMarker([latitude, longitude], {
+                radius: 5,
+                color: "#1f2933",
+                fillColor: "#f1c40f",
+                fillOpacity: 0.95,
+              }).bindPopup(`<b>${name}</b>`).addTo(map);
+            }
+          });
+
           routeDistances = [0];
           for (var index = 1; index < routePoints.length; index += 1) {
             routeDistances.push(
@@ -393,17 +420,9 @@
           document.getElementById("route-distance").textContent =
             `${(routeDistances[routeDistances.length - 1] / 1000).toFixed(2)} km`;
           renderRouteChart();
-
-          if (routePoints.length > 1) {
-            var route = L.polyline(routePoints, {
-              color: "#e74c3c",
-              weight: 4,
-              opacity: 0.8,
-            }).addTo(map);
-            map.fitBounds(route.getBounds());
-          }
+          if (routeBounds.length) map.fitBounds(routeBounds[0]);
         })
-        .catch((error) => console.error("Gagal memuat rute GPX:", error));
+        .catch((error) => console.error("Gagal memuat rute KML:", error));
 
       // 3. Logika Live Tracking menggunakan API Vercel Serverless
       var markers = {};
@@ -643,7 +662,9 @@
                 : "-";
 
               var isOffline = pos.deviceStatus === "offline";
-              var lastUpdateText = formatLastUpdate(pos.deviceLastUpdate || pos.fixTime);
+              var lastUpdateText = formatLastUpdate(
+                pos.deviceLastUpdate || pos.fixTime,
+              );
               var statusText = isOffline
                 ? '<span class="status-offline">🔴 Offline di Traccar</span>'
                 : `<span class="status-online">🟢 Online</span>`;
