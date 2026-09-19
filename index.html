@@ -463,7 +463,10 @@
         return {
           progress: progress,
           nearestDistance: nearestDistance,
-          remainingDistance: Math.max(0, routeDistance - routeDistances[nearestIndex]),
+          remainingDistance: Math.max(
+            0,
+            routeDistance - routeDistances[nearestIndex],
+          ),
         };
       }
 
@@ -471,7 +474,7 @@
         var totalMinutes = Math.max(0, Math.floor(milliseconds / 60000));
         var hours = Math.floor(totalMinutes / 60);
         var minutes = totalMinutes % 60;
-        return `${String(hours).padStart(2, "0")}u ${String(minutes).padStart(2, "0")}m`;
+        return `${hours} hours ${minutes} minutes`;
       }
 
       function updateRouteDetails(latitude, longitude, altitude, speed) {
