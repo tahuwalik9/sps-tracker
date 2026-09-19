@@ -372,24 +372,37 @@
 
           lineRoutes.forEach((line, routeIndex) => {
             var placemark = line.closest("Placemark");
-            var name = placemark?.querySelector("name")?.textContent || `Rute ${routeIndex + 1}`;
-            var coordinates = line.querySelector("coordinates")?.textContent.trim() || "";
-            var points = coordinates.split(/\s+/).map((coordinate) => {
-              var values = coordinate.split(",");
-              return [Number(values[1]), Number(values[0])];
-            }).filter((point) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+            var name =
+              placemark?.querySelector("name")?.textContent ||
+              `Rute ${routeIndex + 1}`;
+            var coordinates =
+              line.querySelector("coordinates")?.textContent.trim() || "";
+            var points = coordinates
+              .split(/\s+/)
+              .map((coordinate) => {
+                var values = coordinate.split(",");
+                return [Number(values[1]), Number(values[0])];
+              })
+              .filter(
+                (point) =>
+                  Number.isFinite(point[0]) && Number.isFinite(point[1]),
+              );
             var route = L.polyline(points, {
               color: routeColors[routeIndex % routeColors.length],
               weight: 4,
               opacity: 0.8,
-            }).bindTooltip(name).addTo(map);
+            })
+              .bindTooltip(name)
+              .addTo(map);
             routeBounds.push(route.getBounds());
             if (routeIndex === 0) routePoints = points;
           });
 
           Array.from(xml.querySelectorAll("Placemark")).forEach((placemark) => {
             if (placemark.querySelector("LineString")) return;
-            var point = placemark.querySelector("Point coordinates")?.textContent.trim();
+            var point = placemark
+              .querySelector("Point coordinates")
+              ?.textContent.trim();
             var name = placemark.querySelector("name")?.textContent.trim();
             if (!point || !name) return;
             var values = point.split(",");
@@ -401,7 +414,9 @@
                 color: "#1f2933",
                 fillColor: "#f1c40f",
                 fillOpacity: 0.95,
-              }).bindPopup(`<b>${name}</b>`).addTo(map);
+              })
+                .bindPopup(`<b>${name}</b>`)
+                .addTo(map);
             }
           });
 
@@ -482,10 +497,6 @@
         return {
           progress: progress,
           nearestDistance: nearestDistance,
-          remainingDistance: Math.max(
-            0,
-            routeDistance - routeDistances[nearestIndex],
-          ),
         };
       }
 
@@ -657,10 +668,6 @@
               var totalRunningTime = formatDuration(
                 participant.latestTimestamp - participant.firstTimestamp,
               );
-              var remainingDistance = routePosition
-                ? `${(routePosition.remainingDistance / 1000).toFixed(2)} km`
-                : "-";
-
               var isOffline = pos.deviceStatus === "offline";
               var lastUpdateText = formatLastUpdate(
                 pos.deviceLastUpdate || pos.fixTime,
@@ -691,8 +698,7 @@
                         Update lokasi: ${lastUpdateText}<br>
                         Kecepatan: ${speed} km/h<br>
                         Waktu total berjalan: ${totalRunningTime}<br>
-                        Total jarak terlacak: ${(participant.distance / 1000).toFixed(2)} km<br>
-                        Total sisa jarak: ${remainingDistance}
+                        Total jarak terlacak: ${(participant.distance / 1000).toFixed(2)} km
                     `);
 
               // Tambahkan ke Sidebar List dengan detail lengkap
@@ -706,8 +712,7 @@
                             Update lokasi: <b>${lastUpdateText}</b><br>
                             Kecepatan: <b>${speed} km/h</b><br>
                           Waktu total berjalan: <b>${totalRunningTime}</b><br>
-                          Total jarak terlacak: <b>${(participant.distance / 1000).toFixed(2)} km</b><br>
-                          Total sisa jarak: <b>${remainingDistance}</b>
+                            Total jarak terlacak: <b>${(participant.distance / 1000).toFixed(2)} km</b>
                         </div>
                     `;
 
