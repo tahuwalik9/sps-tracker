@@ -477,6 +477,18 @@
         return `${hours} hours ${minutes} minutes`;
       }
 
+      function formatLastUpdate(timestamp) {
+        if (!timestamp) return "waktu tidak tersedia";
+        var elapsedMinutes = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000),
+        );
+        if (elapsedMinutes < 1) return "baru saja";
+        if (elapsedMinutes < 60) return `${elapsedMinutes} menit lalu`;
+        var elapsedHours = Math.floor(elapsedMinutes / 60);
+        return `${elapsedHours} jam ${elapsedMinutes % 60} menit lalu`;
+      }
+
       function updateRouteDetails(latitude, longitude, altitude, speed) {
         var routePosition = getRoutePosition(latitude, longitude);
         if (!routePosition) return;
@@ -631,9 +643,10 @@
                 : "-";
 
               var isOffline = pos.deviceStatus === "offline";
+              var lastUpdateText = formatLastUpdate(pos.deviceLastUpdate || pos.fixTime);
               var statusText = isOffline
                 ? '<span class="status-offline">🔴 Offline di Traccar</span>'
-                : '<span class="status-online">🟢 Aktif (Online)</span>';
+                : `<span class="status-online">🟢 Online di Traccar</span>`;
 
               // Update atau buat Marker Peserta di Peta
               if (markers[deviceId]) {
@@ -653,7 +666,8 @@
               markers[deviceId].bindPopup(`
                         <b>Peserta:</b> ${participantName}<br>
                         <b>ID:</b> ${deviceId}<br>
-                        Status: ${isOffline ? "Offline" : "Online"}<br>
+                        Status: ${isOffline ? "Offline" : "Online di Traccar"}<br>
+                        Update lokasi: ${lastUpdateText}<br>
                         Kecepatan: ${speed} km/h<br>
                         Waktu total berjalan: ${totalRunningTime}<br>
                         Total jarak terlacak: ${(participant.distance / 1000).toFixed(2)} km<br>
@@ -668,6 +682,7 @@
                         <div class="participant-details">ID perangkat: ${deviceId}</div>
                         <div class="participant-details">
                             Status: ${statusText}<br>
+                            Update lokasi: <b>${lastUpdateText}</b><br>
                             Kecepatan: <b>${speed} km/h</b><br>
                           Waktu total berjalan: <b>${totalRunningTime}</b><br>
                           Total jarak terlacak: <b>${(participant.distance / 1000).toFixed(2)} km</b><br>
