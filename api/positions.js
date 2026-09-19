@@ -60,7 +60,9 @@ export default async function handler(req, res) {
     return res.status(200).json(
       data.map((position) => ({
         ...position,
-        deviceName: deviceDetails[position.deviceId]?.name || `Peserta ${position.deviceId}`,
+        deviceName:
+          deviceDetails[position.deviceId]?.name ||
+          `Peserta ${position.deviceId}`,
         deviceStatus: deviceDetails[position.deviceId]?.status || "unknown",
         deviceLastUpdate: deviceDetails[position.deviceId]?.lastUpdate || null,
       })),
