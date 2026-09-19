@@ -74,8 +74,12 @@
         border: 1px solid #d9e0e5;
         border-radius: 8px;
       }
-      .login-panel h2 { margin-top: 0; }
-      .hidden { display: none !important; }
+      .login-panel h2 {
+        margin-top: 0;
+      }
+      .hidden {
+        display: none !important;
+      }
       .toolbar {
         display: flex;
         gap: 10px;
@@ -149,7 +153,11 @@
       <label for="login-username">Username</label>
       <input id="login-username" value="admin" autocomplete="username" />
       <label for="login-password">Password</label>
-      <input id="login-password" type="password" autocomplete="current-password" />
+      <input
+        id="login-password"
+        type="password"
+        autocomplete="current-password"
+      />
       <button id="login-button" type="button">Login</button>
       <div id="login-result"></div>
     </section>
@@ -162,9 +170,12 @@
         <code>uniqueId</code>.
       </p>
       <label for="admin-username">Username admin</label>
-      <input id="admin-username" value="admin" autocomplete="username" readonly />
-      <label for="admin-password">Password admin</label>
-      <input id="admin-password" type="password" autocomplete="current-password" readonly />
+      <input
+        id="admin-username"
+        value="admin"
+        autocomplete="username"
+        readonly
+      />
       <label for="csv-file">File CSV peserta</label>
       <input id="csv-file" type="file" accept=".csv,text/csv" />
       <button id="create-button" type="button">Buat device di Traccar</button>
@@ -204,57 +215,66 @@
     </main>
     <script>
       function getAdminHeaders() {
-        var username = document.getElementById("admin-username").value.trim();
-        var password = document.getElementById("admin-password").value;
         return {
           Accept: "application/json",
           "Content-Type": "application/json",
-          Authorization: "Basic " + btoa(username + ":" + password),
         };
       }
 
-      function showAdminContent(username, password) {
+      function showAdminContent(username) {
         document.getElementById("admin-username").value = username;
-        document.getElementById("admin-password").value = password;
         document.getElementById("login-panel").classList.add("hidden");
         document.getElementById("admin-content").classList.remove("hidden");
         loadDevices();
       }
 
       async function loginAdmin(username, password) {
-        var response = await fetch("/api/devices", {
-          headers: {
-            Accept: "application/json",
-            Authorization: "Basic " + btoa(username + ":" + password),
-          },
+        var response = await fetch("/api/admin-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ username, password }),
         });
         var body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error || "Login admin gagal.");
-        sessionStorage.setItem("sps-admin", JSON.stringify({ username, password }));
-        showAdminContent(username, password);
+        sessionStorage.setItem("sps-admin", username);
+        showAdminContent(username);
       }
 
-      document.getElementById("login-button").addEventListener("click", async function () {
-        var result = document.getElementById("login-result");
-        var username = document.getElementById("login-username").value.trim();
-        var password = document.getElementById("login-password").value;
-        if (!username || !password) { result.textContent = "Username dan password wajib diisi."; return; }
-        this.disabled = true;
-        result.textContent = "Memeriksa login...";
-        try { await loginAdmin(username, password); }
-        catch (error) { result.textContent = error.message; }
-        finally { this.disabled = false; }
-      });
+      document
+        .getElementById("login-button")
+        .addEventListener("click", async function () {
+          var result = document.getElementById("login-result");
+          var username = document.getElementById("login-username").value.trim();
+          var password = document.getElementById("login-password").value;
+          if (!username || !password) {
+            result.textContent = "Username dan password wajib diisi.";
+            return;
+          }
+          this.disabled = true;
+          result.textContent = "Memeriksa login...";
+          try {
+            await loginAdmin(username, password);
+          } catch (error) {
+            result.textContent = error.message;
+          } finally {
+            this.disabled = false;
+          }
+        });
 
-      document.getElementById("logout-button").addEventListener("click", function () {
-        sessionStorage.removeItem("sps-admin");
-        window.location.reload();
-      });
+      document
+        .getElementById("logout-button")
+        .addEventListener("click", async function () {
+          await fetch("/api/admin-login", { method: "DELETE" });
+          sessionStorage.removeItem("sps-admin");
+          window.location.reload();
+        });
 
       try {
-        var savedAdmin = JSON.parse(sessionStorage.getItem("sps-admin") || "null");
-        if (savedAdmin?.username && savedAdmin?.password) showAdminContent(savedAdmin.username, savedAdmin.password);
-      } catch (error) { sessionStorage.removeItem("sps-admin"); }
+        var savedAdmin = sessionStorage.getItem("sps-admin");
+        if (savedAdmin) showAdminContent(savedAdmin);
+      } catch (error) {
+        sessionStorage.removeItem("sps-admin");
+      }
 
       function parseCsv(text) {
         var lines = text.trim().split(/\r?\n/).filter(Boolean);
@@ -443,9 +463,6 @@
           }
         });
 
-      document
-        .getElementById("admin-password")
-        .addEventListener("change", loadDevices);
     </script>
   </body>
 </html>

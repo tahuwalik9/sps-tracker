@@ -1,5 +1,23 @@
+import crypto from "node:crypto";
+
+function isValidSession(req) {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  const cookie = req.headers.cookie || "";
+  const token = cookie.match(/(?:^|;\s*)sps_admin=([^;]+)/)?.[1];
+  if (!secret || !token) return false;
+  const [encoded, signature] = token.split(".");
+  if (!encoded || !signature) return false;
+  const expected = crypto.createHmac("sha256", secret).update(encoded).digest("base64url");
+  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
+    return payload.exp > Date.now() && payload.username === process.env.ADMIN_USERNAME;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS",
@@ -11,11 +29,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method tidak didukung" });
   }
 
-  const adminUsername = process.env.ADMIN_USERNAME || "admin";
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin14";
-  const authorization = req.headers.authorization || "";
-  const expected = `Basic ${Buffer.from(`${adminUsername}:${adminPassword || ""}`).toString("base64")}`;
-  if (authorization !== expected) {
+  if (!isValidSession(req)) {
     return res.status(401).json({ error: "Kredensial admin tidak valid" });
   }
 
