@@ -646,7 +646,7 @@
               var lastUpdateText = formatLastUpdate(pos.deviceLastUpdate || pos.fixTime);
               var statusText = isOffline
                 ? '<span class="status-offline">🔴 Offline di Traccar</span>'
-                : `<span class="status-online">🟢 Online di Traccar</span>`;
+                : `<span class="status-online">🟢 Online</span>`;
 
               // Update atau buat Marker Peserta di Peta
               if (markers[deviceId]) {
@@ -666,7 +666,7 @@
               markers[deviceId].bindPopup(`
                         <b>Peserta:</b> ${participantName}<br>
                         <b>ID:</b> ${deviceId}<br>
-                        Status: ${isOffline ? "Offline" : "Online di Traccar"}<br>
+                        Status: ${isOffline ? "Offline" : "Online"}<br>
                         Update lokasi: ${lastUpdateText}<br>
                         Kecepatan: ${speed} km/h<br>
                         Waktu total berjalan: ${totalRunningTime}<br>
