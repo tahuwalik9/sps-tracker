@@ -1,10 +1,10 @@
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(204).end();
-  if (req.method !== "POST") {
+  if (!["GET", "POST", "PUT", "DELETE"].includes(req.method)) {
     return res.status(405).json({ error: "Method tidak didukung" });
   }
 
@@ -29,27 +29,45 @@ export default async function handler(req, res) {
 
   const devicesUrl = traccarUrl.replace(/\/positions\/?$/, "/devices");
   const traccarAuthorization = `Basic ${Buffer.from(`${traccarUsername}:${traccarPassword}`).toString("base64")}`;
-  const devices = Array.isArray(req.body) ? req.body : [req.body];
-  if (
-    !devices.length ||
-    devices.some((device) => !device?.name || !device?.uniqueId)
-  ) {
-    return res
-      .status(400)
-      .json({ error: "Setiap device wajib memiliki name dan uniqueId/BIB" });
-  }
 
   try {
+    if (req.method === "GET") {
+      const response = await fetch(devicesUrl, {
+        headers: { Authorization: traccarAuthorization, Accept: "application/json" },
+      });
+      const body = await response.json().catch(() => ({}));
+      return res.status(response.status).json(body);
+    }
+
+    const deviceId = req.query?.id || req.body?.id;
+    if ((req.method === "PUT" || req.method === "DELETE") && !deviceId) {
+      return res.status(400).json({ error: "ID device wajib diisi" });
+    }
+
+    if (req.method === "DELETE") {
+      const response = await fetch(`${devicesUrl}/${encodeURIComponent(deviceId)}`, {
+        method: "DELETE",
+        headers: { Authorization: traccarAuthorization, Accept: "application/json" },
+      });
+      return res.status(response.status).json({ ok: response.ok });
+    }
+
+    const devices = Array.isArray(req.body) ? req.body : [req.body];
+    if (!devices.length || devices.some((device) => !device?.name || !device?.uniqueId)) {
+      return res.status(400).json({ error: "Setiap device wajib memiliki name dan uniqueId/BIB" });
+    }
+
     const results = [];
     for (const device of devices) {
       const response = await fetch(devicesUrl, {
-        method: "POST",
+        method: req.method === "PUT" ? "PUT" : "POST",
         headers: {
           Authorization: traccarAuthorization,
           "Content-Type": "application/json",
           Accept: "application/json",
         },
         body: JSON.stringify({
+          id: device.id,
           name: String(device.name).trim(),
           uniqueId: String(device.uniqueId).trim(),
           category: device.category

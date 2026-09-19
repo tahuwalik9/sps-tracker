@@ -66,6 +66,52 @@
         background: #f6f8fa;
         min-height: 42px;
       }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+      }
+      .toolbar label {
+        flex: 1;
+      }
+      .toolbar button,
+      .device-actions button {
+        width: auto;
+        margin-top: 6px;
+      }
+      .manage {
+        margin-top: 28px;
+        border-top: 1px solid #d9e0e5;
+        padding-top: 20px;
+      }
+      .manage h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 680px;
+      }
+      th, td {
+        padding: 9px;
+        border-bottom: 1px solid #e1e6ea;
+        text-align: left;
+        font-size: 13px;
+      }
+      th { background: #edf2f7; }
+      .device-actions { white-space: nowrap; }
+      .device-actions button { padding: 7px 9px; margin-right: 4px; }
+      .edit-button { background: #52606d; }
+      .delete-button { background: #c0392b; }
+      @media (max-width: 650px) {
+        body { padding: 12px; }
+        main { padding: 18px; }
+        .toolbar { display: block; }
+      }
     </style>
   </head>
   <body>
@@ -88,6 +134,21 @@
       <input id="csv-file" type="file" accept=".csv,text/csv" />
       <button id="create-button" type="button">Buat device di Traccar</button>
       <div id="result">Belum ada proses.</div>
+      <section class="manage">
+        <h2>Kelola peserta</h2>
+        <div class="toolbar">
+          <label for="device-search">Cari peserta atau BIB
+            <input id="device-search" type="search" placeholder="Contoh: Aditia atau 1001" />
+          </label>
+          <button id="refresh-button" type="button">Muat ulang</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nama</th><th>BIB / Unique ID</th><th>Kategori</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody id="device-list"><tr><td colspan="5">Belum dimuat.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
     </main>
     <script>
       function parseCsv(text) {
@@ -117,6 +178,81 @@
           .filter((device) => device.name && device.uniqueId);
       }
 
+      var managedDevices = [];
+
+      function getAdminHeaders() {
+        var username = document.getElementById("admin-username").value.trim();
+        var password = document.getElementById("admin-password").value;
+        return {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: "Basic " + btoa(username + ":" + password),
+        };
+      }
+
+      function renderDevices() {
+        var query = document.getElementById("device-search").value.trim().toLowerCase();
+        var rows = managedDevices.filter((device) =>
+          `${device.name || ""} ${device.uniqueId || ""} ${device.category || ""}`.toLowerCase().includes(query),
+        );
+        document.getElementById("device-list").innerHTML = rows.length
+          ? rows.map((device) => `
+              <tr>
+                <td>${device.name || "-"}</td>
+                <td>${device.uniqueId || "-"}</td>
+                <td>${device.category || "-"}</td>
+                <td>${device.status || "unknown"}</td>
+                <td class="device-actions">
+                  <button class="edit-button" type="button" data-edit="${device.id}">Edit</button>
+                  <button class="delete-button" type="button" data-delete="${device.id}">Hapus</button>
+                </td>
+              </tr>`).join("")
+          : '<tr><td colspan="5">Tidak ada peserta.</td></tr>';
+      }
+
+      async function loadDevices() {
+        var result = document.getElementById("result");
+        result.textContent = "Memuat daftar device...";
+        try {
+          var response = await fetch("/api/devices", { headers: getAdminHeaders() });
+          var body = await response.json();
+          if (!response.ok) throw new Error(body.error || "Gagal memuat device.");
+          managedDevices = Array.isArray(body) ? body : [];
+          renderDevices();
+          result.textContent = `${managedDevices.length} device dimuat.`;
+        } catch (error) {
+          result.textContent = error.message;
+        }
+      }
+
+      async function editDevice(device) {
+        var name = prompt("Nama peserta:", device.name || "");
+        if (name === null) return;
+        var uniqueId = prompt("BIB / Unique ID:", device.uniqueId || "");
+        if (uniqueId === null) return;
+        var category = prompt("Kategori:", device.category || "");
+        if (category === null) return;
+        var response = await fetch(`/api/devices?id=${encodeURIComponent(device.id)}`, {
+          method: "PUT",
+          headers: getAdminHeaders(),
+          body: JSON.stringify({ id: device.id, name, uniqueId, category }),
+        });
+        var body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Gagal mengubah device.");
+        await loadDevices();
+      }
+
+      async function deleteDevice(device) {
+        if (!confirm(`Hapus device ${device.name || device.uniqueId}?`)) return;
+        var response = await fetch(`/api/devices?id=${encodeURIComponent(device.id)}`, {
+          method: "DELETE",
+          headers: getAdminHeaders(),
+        });
+        var body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Gagal menghapus device.");
+        await loadDevices();
+      }
+
       document
         .getElementById("create-button")
         .addEventListener("click", async function () {
@@ -129,16 +265,9 @@
           this.disabled = true;
           try {
             var devices = parseCsv(await file.text());
-            var username = document
-              .getElementById("admin-username")
-              .value.trim();
-            var password = document.getElementById("admin-password").value;
             var response = await fetch("/api/devices", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: "Basic " + btoa(username + ":" + password),
-              },
+              headers: getAdminHeaders(),
               body: JSON.stringify(devices),
             });
             var body = await response.json();
@@ -158,6 +287,23 @@
             this.disabled = false;
           }
         });
+
+      document.getElementById("refresh-button").addEventListener("click", loadDevices);
+      document.getElementById("device-search").addEventListener("input", renderDevices);
+      document.getElementById("device-list").addEventListener("click", async function (event) {
+        var editId = event.target.dataset.edit;
+        var deleteId = event.target.dataset.delete;
+        var device = managedDevices.find((item) => String(item.id) === String(editId || deleteId));
+        if (!device) return;
+        try {
+          if (editId) await editDevice(device);
+          if (deleteId) await deleteDevice(device);
+        } catch (error) {
+          document.getElementById("result").textContent = error.message;
+        }
+      });
+
+      document.getElementById("admin-password").addEventListener("change", loadDevices);
     </script>
   </body>
 </html>
