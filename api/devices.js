@@ -13,23 +13,30 @@ export default async function handler(req, res) {
   const authorization = req.headers.authorization || "";
   const expected = `Basic ${Buffer.from(`${adminUsername}:${adminPassword || ""}`).toString("base64")}`;
   if (!adminPassword || authorization !== expected) {
-    res.setHeader("WWW-Authenticate", 'Basic realm="SPS Tracker Admin"');
     return res.status(401).json({ error: "Kredensial admin tidak valid" });
   }
 
-  const traccarUrl = process.env.TRACCAR_URL ||
+  const traccarUrl =
+    process.env.TRACCAR_URL ||
     "https://traccar-production-ff17.up.railway.app/api/positions";
   const traccarUsername = process.env.TRACCAR_USERNAME;
   const traccarPassword = process.env.TRACCAR_PASSWORD;
   if (!traccarUsername || !traccarPassword) {
-    return res.status(500).json({ error: "Kredensial Traccar belum dikonfigurasi" });
+    return res
+      .status(500)
+      .json({ error: "Kredensial Traccar belum dikonfigurasi" });
   }
 
   const devicesUrl = traccarUrl.replace(/\/positions\/?$/, "/devices");
   const traccarAuthorization = `Basic ${Buffer.from(`${traccarUsername}:${traccarPassword}`).toString("base64")}`;
   const devices = Array.isArray(req.body) ? req.body : [req.body];
-  if (!devices.length || devices.some((device) => !device?.name || !device?.uniqueId)) {
-    return res.status(400).json({ error: "Setiap device wajib memiliki name dan uniqueId/BIB" });
+  if (
+    !devices.length ||
+    devices.some((device) => !device?.name || !device?.uniqueId)
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Setiap device wajib memiliki name dan uniqueId/BIB" });
   }
 
   try {
@@ -45,7 +52,9 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           name: String(device.name).trim(),
           uniqueId: String(device.uniqueId).trim(),
-          category: device.category ? String(device.category).trim() : undefined,
+          category: device.category
+            ? String(device.category).trim()
+            : undefined,
         }),
       });
       const body = await response.json().catch(() => ({}));
