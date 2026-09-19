@@ -66,6 +66,16 @@
         background: #f6f8fa;
         min-height: 42px;
       }
+      .login-panel {
+        max-width: 420px;
+        margin: 60px auto 0;
+        background: #fff;
+        padding: 28px;
+        border: 1px solid #d9e0e5;
+        border-radius: 8px;
+      }
+      .login-panel h2 { margin-top: 0; }
+      .hidden { display: none !important; }
       .toolbar {
         display: flex;
         gap: 10px;
@@ -96,40 +106,65 @@
         border-collapse: collapse;
         min-width: 680px;
       }
-      th, td {
+      th,
+      td {
         padding: 9px;
         border-bottom: 1px solid #e1e6ea;
         text-align: left;
         font-size: 13px;
       }
-      th { background: #edf2f7; }
-      .device-actions { white-space: nowrap; }
-      .device-actions button { padding: 7px 9px; margin-right: 4px; }
-      .edit-button { background: #52606d; }
-      .delete-button { background: #c0392b; }
+      th {
+        background: #edf2f7;
+      }
+      .device-actions {
+        white-space: nowrap;
+      }
+      .device-actions button {
+        padding: 7px 9px;
+        margin-right: 4px;
+      }
+      .edit-button {
+        background: #52606d;
+      }
+      .delete-button {
+        background: #c0392b;
+      }
       @media (max-width: 650px) {
-        body { padding: 12px; }
-        main { padding: 18px; }
-        .toolbar { display: block; }
+        body {
+          padding: 12px;
+        }
+        main {
+          padding: 18px;
+        }
+        .toolbar {
+          display: block;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
+    <section class="login-panel" id="login-panel">
+      <h2>Login Admin</h2>
+      <p>Login diperlukan untuk mengelola peserta dan device Traccar.</p>
+      <label for="login-username">Username</label>
+      <input id="login-username" value="admin" autocomplete="username" />
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" autocomplete="current-password" />
+      <button id="login-button" type="button">Login</button>
+      <div id="login-result"></div>
+    </section>
+    <main id="admin-content" class="hidden">
       <h1>Device Admin Traccar</h1>
+      <button id="logout-button" type="button">Logout</button>
       <p>
         Impor CSV untuk membuat device peserta. Kolom wajib:
         <code>Name,BIB,Category</code>. Nilai <code>BIB</code> dipakai sebagai
         <code>uniqueId</code>.
       </p>
       <label for="admin-username">Username admin</label>
-      <input id="admin-username" value="admin" autocomplete="username" />
+      <input id="admin-username" value="admin" autocomplete="username" readonly />
       <label for="admin-password">Password admin</label>
-      <input
-        id="admin-password"
-        type="password"
-        autocomplete="current-password"
-      />
+      <input id="admin-password" type="password" autocomplete="current-password" readonly />
       <label for="csv-file">File CSV peserta</label>
       <input id="csv-file" type="file" accept=".csv,text/csv" />
       <button id="create-button" type="button">Buat device di Traccar</button>
@@ -137,20 +172,90 @@
       <section class="manage">
         <h2>Kelola peserta</h2>
         <div class="toolbar">
-          <label for="device-search">Cari peserta atau BIB
-            <input id="device-search" type="search" placeholder="Contoh: Aditia atau 1001" />
+          <label for="device-search"
+            >Cari peserta atau BIB
+            <input
+              id="device-search"
+              type="search"
+              placeholder="Contoh: Aditia atau 1001"
+            />
           </label>
           <button id="refresh-button" type="button">Muat ulang</button>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nama</th><th>BIB / Unique ID</th><th>Kategori</th><th>Status</th><th>Aksi</th></tr></thead>
-            <tbody id="device-list"><tr><td colspan="5">Belum dimuat.</td></tr></tbody>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>BIB / Unique ID</th>
+                <th>Kategori</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="device-list">
+              <tr>
+                <td colspan="5">Belum dimuat.</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </section>
     </main>
     <script>
+      function getAdminHeaders() {
+        var username = document.getElementById("admin-username").value.trim();
+        var password = document.getElementById("admin-password").value;
+        return {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: "Basic " + btoa(username + ":" + password),
+        };
+      }
+
+      function showAdminContent(username, password) {
+        document.getElementById("admin-username").value = username;
+        document.getElementById("admin-password").value = password;
+        document.getElementById("login-panel").classList.add("hidden");
+        document.getElementById("admin-content").classList.remove("hidden");
+        loadDevices();
+      }
+
+      async function loginAdmin(username, password) {
+        var response = await fetch("/api/devices", {
+          headers: {
+            Accept: "application/json",
+            Authorization: "Basic " + btoa(username + ":" + password),
+          },
+        });
+        var body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Login admin gagal.");
+        sessionStorage.setItem("sps-admin", JSON.stringify({ username, password }));
+        showAdminContent(username, password);
+      }
+
+      document.getElementById("login-button").addEventListener("click", async function () {
+        var result = document.getElementById("login-result");
+        var username = document.getElementById("login-username").value.trim();
+        var password = document.getElementById("login-password").value;
+        if (!username || !password) { result.textContent = "Username dan password wajib diisi."; return; }
+        this.disabled = true;
+        result.textContent = "Memeriksa login...";
+        try { await loginAdmin(username, password); }
+        catch (error) { result.textContent = error.message; }
+        finally { this.disabled = false; }
+      });
+
+      document.getElementById("logout-button").addEventListener("click", function () {
+        sessionStorage.removeItem("sps-admin");
+        window.location.reload();
+      });
+
+      try {
+        var savedAdmin = JSON.parse(sessionStorage.getItem("sps-admin") || "null");
+        if (savedAdmin?.username && savedAdmin?.password) showAdminContent(savedAdmin.username, savedAdmin.password);
+      } catch (error) { sessionStorage.removeItem("sps-admin"); }
+
       function parseCsv(text) {
         var lines = text.trim().split(/\r?\n/).filter(Boolean);
         if (lines.length < 2)
@@ -160,15 +265,32 @@
           .shift()
           .replace(/^\uFEFF/, "")
           .split(separator)
-          .map((header) => header.trim().toLowerCase().replace(/^['"]|['"]$/g, ""));
-        var nameIndex = headers.findIndex((header) => ["name", "nama", "nama peserta", "participant"].includes(header));
-        var bibIndex = headers.findIndex((header) => ["bib", "id", "nomor bib", "bib peserta", "uniqueid"].includes(header));
-        var categoryIndex = headers.findIndex((header) => ["category", "kategori", "kategori lomba", "race"].includes(header));
+          .map((header) =>
+            header
+              .trim()
+              .toLowerCase()
+              .replace(/^['"]|['"]$/g, ""),
+          );
+        var nameIndex = headers.findIndex((header) =>
+          ["name", "nama", "nama peserta", "participant"].includes(header),
+        );
+        var bibIndex = headers.findIndex((header) =>
+          ["bib", "id", "nomor bib", "bib peserta", "uniqueid"].includes(
+            header,
+          ),
+        );
+        var categoryIndex = headers.findIndex((header) =>
+          ["category", "kategori", "kategori lomba", "race"].includes(header),
+        );
         if (nameIndex < 0 || bibIndex < 0)
-          throw new Error("Header CSV wajib memiliki Nama/Nama Peserta dan BIB.");
+          throw new Error(
+            "Header CSV wajib memiliki Nama/Nama Peserta dan BIB.",
+          );
         return lines
           .map((line) => {
-            var values = line.split(separator).map((value) => value.trim().replace(/^['"]|['"]$/g, ""));
+            var values = line
+              .split(separator)
+              .map((value) => value.trim().replace(/^['"]|['"]$/g, ""));
             return {
               name: values[nameIndex],
               uniqueId: values[bibIndex],
@@ -180,23 +302,20 @@
 
       var managedDevices = [];
 
-      function getAdminHeaders() {
-        var username = document.getElementById("admin-username").value.trim();
-        var password = document.getElementById("admin-password").value;
-        return {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: "Basic " + btoa(username + ":" + password),
-        };
-      }
-
       function renderDevices() {
-        var query = document.getElementById("device-search").value.trim().toLowerCase();
+        var query = document
+          .getElementById("device-search")
+          .value.trim()
+          .toLowerCase();
         var rows = managedDevices.filter((device) =>
-          `${device.name || ""} ${device.uniqueId || ""} ${device.category || ""}`.toLowerCase().includes(query),
+          `${device.name || ""} ${device.uniqueId || ""} ${device.category || ""}`
+            .toLowerCase()
+            .includes(query),
         );
         document.getElementById("device-list").innerHTML = rows.length
-          ? rows.map((device) => `
+          ? rows
+              .map(
+                (device) => `
               <tr>
                 <td>${device.name || "-"}</td>
                 <td>${device.uniqueId || "-"}</td>
@@ -206,7 +325,9 @@
                   <button class="edit-button" type="button" data-edit="${device.id}">Edit</button>
                   <button class="delete-button" type="button" data-delete="${device.id}">Hapus</button>
                 </td>
-              </tr>`).join("")
+              </tr>`,
+              )
+              .join("")
           : '<tr><td colspan="5">Tidak ada peserta.</td></tr>';
       }
 
@@ -214,9 +335,12 @@
         var result = document.getElementById("result");
         result.textContent = "Memuat daftar device...";
         try {
-          var response = await fetch("/api/devices", { headers: getAdminHeaders() });
+          var response = await fetch("/api/devices", {
+            headers: getAdminHeaders(),
+          });
           var body = await response.json();
-          if (!response.ok) throw new Error(body.error || "Gagal memuat device.");
+          if (!response.ok)
+            throw new Error(body.error || "Gagal memuat device.");
           managedDevices = Array.isArray(body) ? body : [];
           renderDevices();
           result.textContent = `${managedDevices.length} device dimuat.`;
@@ -232,24 +356,32 @@
         if (uniqueId === null) return;
         var category = prompt("Kategori:", device.category || "");
         if (category === null) return;
-        var response = await fetch(`/api/devices?id=${encodeURIComponent(device.id)}`, {
-          method: "PUT",
-          headers: getAdminHeaders(),
-          body: JSON.stringify({ id: device.id, name, uniqueId, category }),
-        });
+        var response = await fetch(
+          `/api/devices?id=${encodeURIComponent(device.id)}`,
+          {
+            method: "PUT",
+            headers: getAdminHeaders(),
+            body: JSON.stringify({ id: device.id, name, uniqueId, category }),
+          },
+        );
         var body = await response.json();
-        if (!response.ok) throw new Error(body.error || "Gagal mengubah device.");
+        if (!response.ok)
+          throw new Error(body.error || "Gagal mengubah device.");
         await loadDevices();
       }
 
       async function deleteDevice(device) {
         if (!confirm(`Hapus device ${device.name || device.uniqueId}?`)) return;
-        var response = await fetch(`/api/devices?id=${encodeURIComponent(device.id)}`, {
-          method: "DELETE",
-          headers: getAdminHeaders(),
-        });
+        var response = await fetch(
+          `/api/devices?id=${encodeURIComponent(device.id)}`,
+          {
+            method: "DELETE",
+            headers: getAdminHeaders(),
+          },
+        );
         var body = await response.json();
-        if (!response.ok) throw new Error(body.error || "Gagal menghapus device.");
+        if (!response.ok)
+          throw new Error(body.error || "Gagal menghapus device.");
         await loadDevices();
       }
 
@@ -288,22 +420,32 @@
           }
         });
 
-      document.getElementById("refresh-button").addEventListener("click", loadDevices);
-      document.getElementById("device-search").addEventListener("input", renderDevices);
-      document.getElementById("device-list").addEventListener("click", async function (event) {
-        var editId = event.target.dataset.edit;
-        var deleteId = event.target.dataset.delete;
-        var device = managedDevices.find((item) => String(item.id) === String(editId || deleteId));
-        if (!device) return;
-        try {
-          if (editId) await editDevice(device);
-          if (deleteId) await deleteDevice(device);
-        } catch (error) {
-          document.getElementById("result").textContent = error.message;
-        }
-      });
+      document
+        .getElementById("refresh-button")
+        .addEventListener("click", loadDevices);
+      document
+        .getElementById("device-search")
+        .addEventListener("input", renderDevices);
+      document
+        .getElementById("device-list")
+        .addEventListener("click", async function (event) {
+          var editId = event.target.dataset.edit;
+          var deleteId = event.target.dataset.delete;
+          var device = managedDevices.find(
+            (item) => String(item.id) === String(editId || deleteId),
+          );
+          if (!device) return;
+          try {
+            if (editId) await editDevice(device);
+            if (deleteId) await deleteDevice(device);
+          } catch (error) {
+            document.getElementById("result").textContent = error.message;
+          }
+        });
 
-      document.getElementById("admin-password").addEventListener("change", loadDevices);
+      document
+        .getElementById("admin-password")
+        .addEventListener("change", loadDevices);
     </script>
   </body>
 </html>
