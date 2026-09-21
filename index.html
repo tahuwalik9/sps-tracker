@@ -365,6 +365,13 @@
       .event-topline strong {
         letter-spacing: 0.05em;
       }
+      .back-to-events {
+        color: #fff;
+        text-decoration: none;
+      }
+      .back-to-events:hover {
+        color: #55d6c3;
+      }
       .event-actions {
         height: 58px;
         display: flex;
@@ -385,6 +392,21 @@
       }
       .event-action.active {
         background: #327ff0;
+      }
+      .event-action[data-route="77"],
+      .route-choice[data-route="77"] {
+        background: #e74c3c;
+        border-color: #e74c3c;
+      }
+      .event-action[data-route="161"],
+      .route-choice[data-route="161"] {
+        background: #2980b9;
+        border-color: #2980b9;
+      }
+      .event-action[data-route="242"],
+      .route-choice[data-route="242"] {
+        background: #16a085;
+        border-color: #16a085;
       }
       .route-filter {
         position: absolute;
@@ -420,6 +442,9 @@
         background: #327ff0;
         border-color: #327ff0;
       }
+      .route-choice.active[data-route="77"] { background: #e74c3c; border-color: #e74c3c; }
+      .route-choice.active[data-route="161"] { background: #2980b9; border-color: #2980b9; }
+      .route-choice.active[data-route="242"] { background: #16a085; border-color: #16a085; }
       .right-rail {
         position: absolute;
         top: 108px;
@@ -893,7 +918,7 @@
     </script>
     <header class="event-header">
       <div class="event-topline">
-        <span>&larr; All Events</span>
+        <a class="back-to-events" href="https://gpstrack.slowpacescenario.web.id/">&larr; All Events</a>
         <strong>DKAR 2026</strong>
         <span id="connection-status">Menghubungkan...</span>
       </div>
