@@ -474,9 +474,9 @@
         >
           User
         </button>
-        <button class="event-action" type="button" data-route="600">600</button>
-        <button class="event-action" type="button" data-route="300">300</button>
-        <button class="event-action" type="button" data-route="100">100</button>
+        <button class="event-action" type="button" data-route="77">77</button>
+        <button class="event-action" type="button" data-route="161">161</button>
+        <button class="event-action" type="button" data-route="242">242</button>
         <button class="event-action" type="button" data-panel="weather">
           Weather
         </button>
@@ -559,14 +559,14 @@
             <button class="route-choice active" type="button" data-route="all">
               Semua peserta
             </button>
-            <button class="route-choice" type="button" data-route="600">
-              600
+            <button class="route-choice" type="button" data-route="77">
+              77
             </button>
-            <button class="route-choice" type="button" data-route="300">
-              300
+            <button class="route-choice" type="button" data-route="161">
+              161
             </button>
-            <button class="route-choice" type="button" data-route="100">
-              100
+            <button class="route-choice" type="button" data-route="242">
+              242
             </button>
             <label
               ><input id="select-all" type="checkbox" checked /> Select
@@ -791,6 +791,15 @@
         document.getElementById("route-speed").textContent = `${speed} km/h`;
       }
 
+      function setConnectionStatus(message) {
+        ["connection-status", "sidebar-connection-status"].forEach(
+          (elementId) => {
+            var element = document.getElementById(elementId);
+            if (element) element.textContent = message;
+          },
+        );
+      }
+
       function distanceInMeters(firstLat, firstLon, secondLat, secondLon) {
         var earthRadius = 6371000;
         var latitudeDelta = ((secondLat - firstLat) * Math.PI) / 180;
@@ -890,8 +899,7 @@
               );
             }
 
-            document.getElementById("connection-status").innerText =
-              `Status: Terhubung (Live) - ${data.length} peserta`;
+            setConnectionStatus(`Status: Terhubung (Live) - ${data.length} peserta`);
 
             latestParticipants = [];
 
@@ -1016,8 +1024,7 @@
           })
           .catch((error) => {
             console.error("Gagal mengambil data:", error);
-            document.getElementById("connection-status").innerText =
-              `Status: Terputus - ${error.message}`;
+            setConnectionStatus(`Status: Terputus - ${error.message}`);
           });
       }
 
