@@ -198,26 +198,147 @@
         color: #152238;
         background: #f6f8fa;
       }
-      .landing-section-inner { max-width: 1180px; margin: auto; }
-      .landing-section h2 { margin: 0 0 12px; color: #fff; font-size: clamp(28px, 4vw, 48px); }
-      .landing-section.light h2 { color: #152238; }
-      .landing-section-lead { max-width: 580px; margin: 0 0 30px; color: #afbed0; line-height: 1.6; }
-      .landing-section.light .landing-section-lead { color: #627286; }
-      .landing-feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-      .landing-feature { padding: 22px; border: 1px solid rgba(190, 215, 235, .2); border-radius: 6px; background: rgba(16, 31, 48, .54); }
-      .landing-section.light .landing-feature { border-color: #e0e6ec; background: #fff; box-shadow: 0 10px 28px rgba(21, 34, 56, .06); }
-      .landing-feature-number { color: #55d6c3; font-size: 12px; font-weight: 800; letter-spacing: .12em; }
-      .landing-feature h3 { margin: 12px 0 8px; color: #fff; font-size: 18px; }
-      .landing-section.light .landing-feature h3 { color: #152238; }
-      .landing-feature p { margin: 0; color: #afbed0; font-size: 13px; line-height: 1.6; }
-      .landing-section.light .landing-feature p { color: #627286; }
-      .landing-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
-      .landing-mode-visual { min-height: 260px; padding: 20px; border: 1px solid rgba(85, 214, 195, .34); border-radius: 8px; background: linear-gradient(145deg, #1b3550, #122132); }
-      .landing-map-lines { height: 220px; border: 1px solid rgba(85, 214, 195, .25); background: repeating-linear-gradient(35deg, transparent 0 28px, rgba(85, 214, 195, .14) 29px 30px), repeating-linear-gradient(145deg, transparent 0 44px, rgba(142, 197, 255, .14) 45px 46px); }
-      .landing-mode-list { display: grid; gap: 14px; }
-      .landing-mode-list div { padding: 15px 18px; border-left: 3px solid #55d6c3; background: rgba(16, 31, 48, .55); }
-      .landing-mode-list strong { display: block; color: #fff; margin-bottom: 5px; }
-      .landing-mode-list span { color: #afbed0; font-size: 13px; line-height: 1.4; }
+      .landing-section-inner {
+        max-width: 1180px;
+        margin: auto;
+      }
+      .landing-section h2 {
+        margin: 0 0 12px;
+        color: #fff;
+        font-size: clamp(28px, 4vw, 48px);
+      }
+      .landing-section.light h2 {
+        color: #152238;
+      }
+      .landing-section-lead {
+        max-width: 580px;
+        margin: 0 0 30px;
+        color: #afbed0;
+        line-height: 1.6;
+      }
+      .landing-section.light .landing-section-lead {
+        color: #627286;
+      }
+      .landing-feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .landing-feature {
+        padding: 22px;
+        border: 1px solid rgba(190, 215, 235, 0.2);
+        border-radius: 6px;
+        background: rgba(16, 31, 48, 0.54);
+      }
+      .landing-section.light .landing-feature {
+        border-color: #e0e6ec;
+        background: #fff;
+        box-shadow: 0 10px 28px rgba(21, 34, 56, 0.06);
+      }
+      .landing-feature-number {
+        color: #55d6c3;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+      .landing-feature h3 {
+        margin: 12px 0 8px;
+        color: #fff;
+        font-size: 18px;
+      }
+      .landing-section.light .landing-feature h3 {
+        color: #152238;
+      }
+      .landing-feature p {
+        margin: 0;
+        color: #afbed0;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .landing-section.light .landing-feature p {
+        color: #627286;
+      }
+      .landing-mode {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 50px;
+        align-items: center;
+      }
+      .landing-mode-visual {
+        min-height: 260px;
+        padding: 20px;
+        border: 1px solid rgba(85, 214, 195, 0.34);
+        border-radius: 8px;
+        background: linear-gradient(145deg, #1b3550, #122132);
+      }
+      .landing-map-lines {
+        height: 220px;
+        border: 1px solid rgba(85, 214, 195, 0.25);
+        background:
+          repeating-linear-gradient(
+            35deg,
+            transparent 0 28px,
+            rgba(85, 214, 195, 0.14) 29px 30px
+          ),
+          repeating-linear-gradient(
+            145deg,
+            transparent 0 44px,
+            rgba(142, 197, 255, 0.14) 45px 46px
+          );
+      }
+      .landing-mode-list {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+      }
+      .landing-mode-list div {
+        padding: 15px 18px;
+        border-left: 3px solid #55d6c3;
+      .landing-map-video {
+        display: block;
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        opacity: .88;
+      }
+      .landing-map-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 16px;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(10, 21, 35, .72), transparent 45%, rgba(10, 21, 35, .34));
+      }
+      .landing-live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 10px;
+        border-radius: 3px;
+        color: #fff;
+        background: rgba(16, 31, 48, .82);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .landing-live-pill::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #55d6c3;
+        box-shadow: 0 0 0 4px rgba(85, 214, 195, .2);
+        content: "";
+        color: #fff;
+        margin-bottom: 5px;
+      }
+      .landing-mode-list span {
+        color: #afbed0;
+        font-size: 13px;
+        line-height: 1.4;
+      }
       @media (max-width: 720px) {
         .landing-nav {
           padding: 20px 18px 0;
@@ -247,9 +368,13 @@
           grid-template-columns: 1fr;
           padding: 8px 18px 40px;
         }
-        .landing-section { padding: 52px 18px; }
+        .landing-section {
+          padding: 52px 18px;
+        }
         .landing-feature-grid,
-        .landing-mode { grid-template-columns: 1fr; }
+        .landing-mode {
+          grid-template-columns: 1fr;
+        }
       }
       .container {
         display: flex;
@@ -723,24 +848,75 @@
         <div class="landing-section-inner">
           <div class="landing-kicker">A clearer way to move</div>
           <h2>From first ping to finish line.</h2>
-          <p class="landing-section-lead">SPS Tracker turns live location data into a calm, useful view for the people running the journey.</p>
+          <p class="landing-section-lead">
+            SPS Tracker turns live location data into a calm, useful view for
+            the people running the journey.
+          </p>
           <div class="landing-feature-grid">
-            <article class="landing-feature"><div class="landing-feature-number">01 / CONNECT</div><h3>Bring your device</h3><p>Connect phones and GPS trackers with a simple participant workflow.</p></article>
-            <article class="landing-feature"><div class="landing-feature-number">02 / FOLLOW</div><h3>Watch live movement</h3><p>See participants, routes, checkpoints, and status updates on one map.</p></article>
-            <article class="landing-feature"><div class="landing-feature-number">03 / SHARE</div><h3>Keep everyone close</h3><p>Give teams and families a clear way to follow progress from any browser.</p></article>
+            <article class="landing-feature">
+              <div class="landing-feature-number">01 / CONNECT</div>
+              <h3>Bring your device</h3>
+              <p>
+                Connect phones and GPS trackers with a simple participant
+                workflow.
+              </p>
+            </article>
+            <article class="landing-feature">
+              <div class="landing-feature-number">02 / FOLLOW</div>
+              <h3>Watch live movement</h3>
+              <p>
+                See participants, routes, checkpoints, and status updates on one
+                map.
+              </p>
+            </article>
+            <article class="landing-feature">
+              <div class="landing-feature-number">03 / SHARE</div>
+              <h3>Keep everyone close</h3>
+              <p>
+                Give teams and families a clear way to follow progress from any
+                browser.
+              </p>
+            </article>
           </div>
         </div>
       </section>
       <section class="landing-section">
         <div class="landing-mode">
-          <div class="landing-mode-visual" aria-label="Live map preview"><div class="landing-map-lines"></div></div>
+          <div class="landing-mode-visual" aria-label="Live map preview">
+            <video class="landing-map-video" autoplay muted loop playsinline preload="metadata">
+              <source src="Racemap%20_%20Home.mp4" type="video/mp4" />
+              Browser Anda tidak mendukung video preview.
+            </video>
+            <div class="landing-map-overlay">
+              <span class="landing-live-pill">Live map preview</span>
+              <span class="landing-live-pill">Moving route</span>
+            </div>
+          </div>
           <div>
             <div class="landing-kicker">Made for real movement</div>
             <h2>One view. Every route.</h2>
             <div class="landing-mode-list">
-              <div><strong>Live participant map</strong><span>Know who is moving, who has stopped, and where the route leads.</span></div>
-              <div><strong>Event-ready controls</strong><span>Manage categories, participants, and checkpoints without the clutter.</span></div>
-              <div><strong>Built to stay readable</strong><span>Useful details for organizers, simple context for everyone else.</span></div>
+              <div>
+                <strong>Live participant map</strong
+                ><span
+                  >Know who is moving, who has stopped, and where the route
+                  leads.</span
+                >
+              </div>
+              <div>
+                <strong>Event-ready controls</strong
+                ><span
+                  >Manage categories, participants, and checkpoints without the
+                  clutter.</span
+                >
+              </div>
+              <div>
+                <strong>Built to stay readable</strong
+                ><span
+                  >Useful details for organizers, simple context for everyone
+                  else.</span
+                >
+              </div>
             </div>
           </div>
         </div>
