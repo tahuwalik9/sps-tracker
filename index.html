@@ -15,13 +15,92 @@
         margin: 0;
         padding: 0;
         height: 100%;
+        overflow: hidden;
         font-family: Arial, sans-serif;
+        background: #101a2a;
       }
       .container {
         display: flex;
-        height: 100vh;
+        height: calc(100vh - 92px);
         width: 100vw;
       }
+      .event-header {
+        height: 92px;
+        box-sizing: border-box;
+        color: #fff;
+        background: #1d293b;
+        border-bottom: 2px solid #13b8a6;
+      }
+      .event-topline {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        background: #172234;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .event-topline strong { letter-spacing: .05em; }
+      .event-actions {
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 10px;
+      }
+      .event-action {
+        min-width: 110px;
+        padding: 8px 18px;
+        border: 0;
+        border-radius: 5px;
+        color: #fff;
+        background: #3c4b62;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 12px;
+      }
+      .event-action.active { background: #327ff0; }
+      .route-filter {
+        position: absolute;
+        left: 16px;
+        top: 108px;
+        z-index: 1002;
+        width: 200px;
+        padding: 12px;
+        color: #eaf1fa;
+        background: rgba(29, 41, 59, .94);
+        border-radius: 5px;
+        box-shadow: 0 4px 14px rgba(0,0,0,.25);
+      }
+      .route-filter h4 { margin: 0 0 10px; font-size: 11px; color: #9baabd; }
+      .route-choice {
+        display: block;
+        width: 100%;
+        margin: 6px 0;
+        padding: 9px;
+        border: 1px solid #52637c;
+        border-radius: 3px;
+        color: #fff;
+        background: #26354b;
+        text-align: left;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .route-choice.active { background: #327ff0; border-color: #327ff0; }
+      .right-rail {
+        position: absolute;
+        top: 108px;
+        right: 16px;
+        z-index: 1002;
+        display: grid;
+        gap: 8px;
+      }
+      .right-rail button { border: 0; border-radius: 4px; padding: 10px 15px; color: #fff; background: rgba(29,41,59,.9); cursor: pointer; font-weight: bold; }
+      .right-card { display: none; width: 240px; padding: 14px; color: #eaf1fa; background: rgba(22,34,52,.95); border-radius: 6px; }
+      .right-card.open { display: block; }
+      .right-card h4 { margin: 0 0 8px; }
+      .right-card p { margin: 5px 0; font-size: 12px; color: #b4c0d0; }
 
       /* Panel Sidebar di sebelah kiri */
       #sidebar {
@@ -226,12 +305,20 @@
           height: auto;
           min-height: 100%;
           overflow-x: hidden;
+          overflow-y: auto;
         }
         .container {
           display: block;
           height: auto;
           min-height: 0;
         }
+        .event-header { height: 82px; }
+        .event-topline { height: 30px; }
+        .event-actions { height: 52px; overflow-x: auto; justify-content: flex-start; padding: 0 10px; }
+        .event-action { min-width: 88px; padding: 8px 12px; }
+        .route-filter { position: absolute; top: 92px; left: 8px; width: 150px; }
+        .right-rail { top: 92px; right: 8px; }
+        .right-card { width: 190px; }
         #sidebar {
           width: 100%;
           height: 44vh;
@@ -267,12 +354,49 @@
     </style>
   </head>
   <body>
+    <header class="event-header">
+      <div class="event-topline">
+        <span>&larr; All Events</span>
+        <strong>DKAR 2026</strong>
+        <span id="connection-status">Menghubungkan...</span>
+      </div>
+      <nav class="event-actions" aria-label="Kontrol event">
+        <button class="event-action active" type="button" data-panel="participants">User</button>
+        <button class="event-action" type="button" data-route="600">600</button>
+        <button class="event-action" type="button" data-route="300">300</button>
+        <button class="event-action" type="button" data-route="100">100</button>
+        <button class="event-action" type="button" data-panel="weather">Weather</button>
+        <button class="event-action" type="button" data-panel="chat">Chat</button>
+      </nav>
+    </header>
+    <aside class="route-filter">
+      <h4>FILTER BY ROUTE (GPX)</h4>
+      <button class="route-choice active" type="button" data-route="all">Semua peserta</button>
+      <button class="route-choice" type="button" data-route="600">600</button>
+      <button class="route-choice" type="button" data-route="300">300</button>
+      <button class="route-choice" type="button" data-route="100">100</button>
+      <label><input id="select-all" type="checkbox" checked /> Select All</label>
+      <input id="participant-search" type="search" placeholder="Search BIB or name..." autocomplete="off" />
+    </aside>
+    <aside class="right-rail">
+      <div class="right-card" id="weather-card">
+        <h4>Weather</h4>
+        <p>Data cuaca dapat dihubungkan ke API cuaca event.</p>
+        <p>Lokasi event: Yogyakarta</p>
+      </div>
+      <div class="right-card" id="chat-card">
+        <h4>Live Chat</h4>
+        <p>Panel chat siap dihubungkan ke layanan pesan event.</p>
+      </div>
+      <button type="button" data-panel="weather">Weather</button>
+      <button type="button" data-panel="chat">Chat</button>
+    </aside>
     <div class="container">
       <!-- Sidebar Daftar Peserta -->
       <div id="sidebar">
         <div class="sidebar-header">
           <h3>Live Tracking Peserta</h3>
-          <p id="connection-status">Menghubungkan ke server...</p>
+          <p id="sidebar-connection-status">Menghubungkan ke server...</p>
         </div>
         <div class="sidebar-tabs" role="tablist" aria-label="Tampilan peserta">
           <button
@@ -296,12 +420,7 @@
         </div>
         <div class="sidebar-view active" id="participants-view" role="tabpanel">
           <div class="search-wrap">
-            <input
-              id="participant-search"
-              type="search"
-              placeholder="Cari nama peserta..."
-              autocomplete="off"
-            />
+            <input type="search" placeholder="Cari nama peserta..." autocomplete="off" disabled />
           </div>
           <ul id="participant-list">
             <!-- Data peserta akan dimasukkan secara otomatis oleh JavaScript -->
@@ -451,6 +570,7 @@
         "#27ae60",
       ];
       var latestParticipants = [];
+      var activeRouteFilter = "all";
 
       function renderRouteChart() {
         var chart = document.getElementById("route-chart");
@@ -568,7 +688,11 @@
         var listContainer = document.getElementById("participant-list");
         listContainer.innerHTML = "";
         latestParticipants
-          .filter((participant) => participant.searchText.includes(query))
+          .filter(
+            (participant) =>
+              participant.searchText.includes(query) &&
+              (activeRouteFilter === "all" || participant.category === activeRouteFilter),
+          )
           .forEach((participant) =>
             listContainer.appendChild(participant.element),
           );
@@ -619,6 +743,7 @@
             data.forEach((pos) => {
               var deviceId = pos.deviceId;
               var participantName = pos.deviceName || `Peserta ${deviceId}`;
+              var participantCategory = String(pos.deviceCategory || "");
               var lat = pos.latitude;
               var lon = pos.longitude;
               var speed = pos.speed ? Math.round(pos.speed * 1.852) : 0; // Konversi knot ke km/h
@@ -632,6 +757,7 @@
                 participantStats[deviceId] = {
                   deviceId: deviceId,
                   name: participantName,
+                  category: participantCategory,
                   color:
                     markerColors[
                       Object.keys(participantStats).length % markerColors.length
@@ -664,6 +790,7 @@
 
               var participant = participantStats[deviceId];
               participant.name = participantName;
+              participant.category = participantCategory;
               updateRouteDetails(lat, lon, altitude, speed);
               var totalRunningTime = formatDuration(
                 participant.latestTimestamp - participant.firstTimestamp,
@@ -724,7 +851,8 @@
 
               latestParticipants.push({
                 element: listItem,
-                searchText: `${participantName} ${deviceId}`.toLowerCase(),
+                category: participantCategory,
+                searchText: `${participantName} ${deviceId} ${participantCategory}`.toLowerCase(),
               });
             });
             renderParticipantList();
@@ -742,6 +870,25 @@
       document
         .getElementById("participant-search")
         .addEventListener("input", renderParticipantList);
+      document.querySelectorAll("[data-route]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          activeRouteFilter = button.dataset.route;
+          document.querySelectorAll("[data-route]").forEach((item) =>
+            item.classList.toggle("active", item.dataset.route === activeRouteFilter),
+          );
+          renderParticipantList();
+        });
+      });
+      document.getElementById("select-all").addEventListener("change", function () {
+        activeRouteFilter = this.checked ? "all" : "none";
+        renderParticipantList();
+      });
+      document.querySelectorAll("[data-panel]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var panel = document.getElementById(`${button.dataset.panel}-card`);
+          if (panel) panel.classList.toggle("open");
+        });
+      });
       document
         .getElementById("participants-tab")
         .addEventListener("click", function () {

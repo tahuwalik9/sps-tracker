@@ -43,6 +43,7 @@ export default async function handler(req, res) {
         device.id,
         {
           name: device.name || device.uniqueId,
+          category: device.category || "",
           status: device.status || "unknown",
           lastUpdate: device.lastUpdate || null,
         },
@@ -55,6 +56,7 @@ export default async function handler(req, res) {
         deviceName:
           deviceDetails[position.deviceId]?.name ||
           `Peserta ${position.deviceId}`,
+        deviceCategory: deviceDetails[position.deviceId]?.category || "",
         deviceStatus: deviceDetails[position.deviceId]?.status || "unknown",
         deviceLastUpdate: deviceDetails[position.deviceId]?.lastUpdate || null,
       })),
