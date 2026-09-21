@@ -442,9 +442,18 @@
         background: #327ff0;
         border-color: #327ff0;
       }
-      .route-choice.active[data-route="77"] { background: #e74c3c; border-color: #e74c3c; }
-      .route-choice.active[data-route="161"] { background: #2980b9; border-color: #2980b9; }
-      .route-choice.active[data-route="242"] { background: #16a085; border-color: #16a085; }
+      .route-choice.active[data-route="77"] {
+        background: #e74c3c;
+        border-color: #e74c3c;
+      }
+      .route-choice.active[data-route="161"] {
+        background: #2980b9;
+        border-color: #2980b9;
+      }
+      .route-choice.active[data-route="242"] {
+        background: #16a085;
+        border-color: #16a085;
+      }
       .right-rail {
         position: absolute;
         top: 108px;
@@ -918,7 +927,11 @@
     </script>
     <header class="event-header">
       <div class="event-topline">
-        <a class="back-to-events" href="https://gpstrack.slowpacescenario.web.id/">&larr; All Events</a>
+        <a
+          class="back-to-events"
+          href="https://gpstrack.slowpacescenario.web.id/"
+          >&larr; All Events</a
+        >
         <strong>DKAR 2026</strong>
         <span id="connection-status">Menghubungkan...</span>
       </div>
@@ -944,8 +957,10 @@
     <aside class="right-rail">
       <div class="right-card" id="weather-card">
         <h4>Weather</h4>
-        <p>Data cuaca dapat dihubungkan ke API cuaca event.</p>
-        <p>Lokasi event: Yogyakarta</p>
+        <p id="weather-condition">Memuat cuaca...</p>
+        <p id="weather-temperature">Suhu: -</p>
+        <p id="weather-details">Kelembapan: - | Angin: -</p>
+        <p id="weather-updated">Yogyakarta · -</p>
       </div>
       <div class="right-card" id="chat-card">
         <h4>Live Chat</h4>
@@ -1256,6 +1271,47 @@
         );
       }
 
+      function describeWeatherCode(code) {
+        var descriptions = {
+          0: "Cerah",
+          1: "Cerah berawan",
+          2: "Berawan sebagian",
+          3: "Mendung",
+          45: "Berkabut",
+          48: "Kabut beku",
+          51: "Gerimis ringan",
+          53: "Gerimis",
+          55: "Gerimis lebat",
+          61: "Hujan ringan",
+          63: "Hujan",
+          65: "Hujan lebat",
+          80: "Hujan lokal",
+          81: "Hujan lokal",
+          82: "Hujan lokal lebat",
+          95: "Badai petir",
+          96: "Badai petir dan hujan es",
+          99: "Badai petir dan hujan es",
+        };
+        return descriptions[code] || "Kondisi tidak diketahui";
+      }
+
+      async function loadWeather() {
+        var weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=-7.7956&longitude=110.3695&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia%2FBangkok";
+        try {
+          var response = await fetch(weatherUrl);
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          var weather = await response.json();
+          var current = weather.current;
+          document.getElementById("weather-condition").textContent = describeWeatherCode(current.weather_code);
+          document.getElementById("weather-temperature").textContent = `Suhu: ${Math.round(current.temperature_2m)}°C`;
+          document.getElementById("weather-details").textContent = `Kelembapan: ${current.relative_humidity_2m}% | Angin: ${Math.round(current.wind_speed_10m)} km/h`;
+          document.getElementById("weather-updated").textContent = `Yogyakarta · ${current.time.replace("T", " ")}`;
+        } catch (error) {
+          document.getElementById("weather-condition").textContent = "Cuaca tidak tersedia";
+          document.getElementById("weather-updated").textContent = "Open-Meteo tidak merespons";
+        }
+      }
+
       function distanceInMeters(firstLat, firstLon, secondLat, secondLon) {
         var earthRadius = 6371000;
         var latitudeDelta = ((secondLat - firstLat) * Math.PI) / 180;
@@ -1514,7 +1570,10 @@
       document.querySelectorAll("[data-panel]").forEach(function (button) {
         button.addEventListener("click", function () {
           var panel = document.getElementById(`${button.dataset.panel}-card`);
-          if (panel) panel.classList.toggle("open");
+          if (panel) {
+            panel.classList.toggle("open");
+            if (button.dataset.panel === "weather" && panel.classList.contains("open")) loadWeather();
+          }
         });
       });
       document
@@ -1532,6 +1591,8 @@
         .addEventListener("click", function () {
           showSidebarView("route-filter");
         });
+      loadWeather();
+      setInterval(loadWeather, 15 * 60 * 1000);
       fetchGPSData();
     </script>
   </body>
