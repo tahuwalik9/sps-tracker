@@ -39,8 +39,13 @@
         text-align: center;
         font-family: Arial, sans-serif;
       }
-      .root-placeholder h1 { font-size: 42px; margin: 0 0 12px; }
-      .root-placeholder a { color: #8ec5ff; }
+      .root-placeholder h1 {
+        font-size: 42px;
+        margin: 0 0 12px;
+      }
+      .root-placeholder a {
+        color: #8ec5ff;
+      }
       .container {
         display: flex;
         height: calc(100vh - 92px);
@@ -237,7 +242,7 @@
       }
       .sidebar-tabs {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 6px;
         padding: 10px 15px 0;
         background: #fff;
@@ -266,6 +271,19 @@
       .sidebar-view.active {
         display: flex;
         flex-direction: column;
+      }
+      .sidebar-route-filter {
+        padding: 14px 15px;
+        background: #1d293b;
+        color: #fff;
+      }
+      .sidebar-route-filter h4 {
+        margin: 0 0 10px;
+        color: #aebbd0;
+        font-size: 11px;
+      }
+      .sidebar-route-filter .route-choice {
+        margin: 7px 0;
       }
       .search-wrap {
         padding: 10px 15px 0;
@@ -467,24 +485,6 @@
         </button>
       </nav>
     </header>
-    <aside class="route-filter">
-      <h4>FILTER BY ROUTE (GPX)</h4>
-      <button class="route-choice active" type="button" data-route="all">
-        Semua peserta
-      </button>
-      <button class="route-choice" type="button" data-route="600">600</button>
-      <button class="route-choice" type="button" data-route="300">300</button>
-      <button class="route-choice" type="button" data-route="100">100</button>
-      <label
-        ><input id="select-all" type="checkbox" checked /> Select All</label
-      >
-      <input
-        id="participant-search"
-        type="search"
-        placeholder="Search BIB or name..."
-        autocomplete="off"
-      />
-    </aside>
     <aside class="right-rail">
       <div class="right-card" id="weather-card">
         <h4>Weather</h4>
@@ -505,7 +505,7 @@
           <h3>Live Tracking Peserta</h3>
           <p id="sidebar-connection-status">Menghubungkan ke server...</p>
         </div>
-        <div class="sidebar-tabs" role="tablist" aria-label="Tampilan peserta">
+        <div class="sidebar-tabs" role="tablist" aria-label="Menu dashboard">
           <button
             class="sidebar-tab active"
             id="participants-tab"
@@ -513,7 +513,7 @@
             role="tab"
             aria-selected="true"
           >
-            Semua peserta
+            Peserta
           </button>
           <button
             class="sidebar-tab"
@@ -524,6 +524,15 @@
           >
             Leaderboard
           </button>
+          <button
+            class="sidebar-tab"
+            id="route-filter-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Filter rute
+          </button>
         </div>
         <div class="sidebar-view active" id="participants-view" role="tabpanel">
           <div class="search-wrap">
@@ -531,7 +540,6 @@
               type="search"
               placeholder="Cari nama peserta..."
               autocomplete="off"
-              disabled
             />
           </div>
           <ul id="participant-list">
@@ -542,6 +550,16 @@
           <div class="leaderboard">
             <h4>Leaderboard jarak</h4>
             <div id="leaderboard-list">Menunggu data tracking...</div>
+          </div>
+        </div>
+        <div class="sidebar-view" id="route-filter-view" role="tabpanel">
+          <div class="sidebar-route-filter">
+            <h4>FILTER BY ROUTE (GPX)</h4>
+            <button class="route-choice active" type="button" data-route="all">Semua peserta</button>
+            <button class="route-choice" type="button" data-route="600">600</button>
+            <button class="route-choice" type="button" data-route="300">300</button>
+            <button class="route-choice" type="button" data-route="100">100</button>
+            <label><input id="select-all" type="checkbox" checked /> Select All</label>
           </div>
         </div>
       </div>
@@ -774,9 +792,15 @@
       }
 
       function renderLeaderboard() {
-        var leaderboard = Object.values(participantStats).sort(
+        var leaderboard = Object.values(participantStats)
+          .filter(
+            (participant) =>
+              activeRouteFilter === "all" ||
+              participant.category === activeRouteFilter,
+          )
+          .sort(
           (first, second) => second.distance - first.distance,
-        );
+          );
         var container = document.getElementById("leaderboard-list");
         container.innerHTML = leaderboard.length
           ? leaderboard
@@ -813,24 +837,34 @@
 
       function showSidebarView(viewName) {
         var isLeaderboard = viewName === "leaderboard";
+        var isRouteFilter = viewName === "route-filter";
         document
           .getElementById("participants-view")
-          .classList.toggle("active", !isLeaderboard);
+          .classList.toggle("active", !isLeaderboard && !isRouteFilter);
         document
           .getElementById("leaderboard-view")
           .classList.toggle("active", isLeaderboard);
         document
+          .getElementById("route-filter-view")
+          .classList.toggle("active", isRouteFilter);
+        document
           .getElementById("participants-tab")
-          .classList.toggle("active", !isLeaderboard);
+          .classList.toggle("active", !isLeaderboard && !isRouteFilter);
         document
           .getElementById("leaderboard-tab")
           .classList.toggle("active", isLeaderboard);
+        document
+          .getElementById("route-filter-tab")
+          .classList.toggle("active", isRouteFilter);
         document
           .getElementById("participants-tab")
           .setAttribute("aria-selected", String(!isLeaderboard));
         document
           .getElementById("leaderboard-tab")
           .setAttribute("aria-selected", String(isLeaderboard));
+        document
+          .getElementById("route-filter-tab")
+          .setAttribute("aria-selected", String(isRouteFilter));
       }
 
       function fetchGPSData() {
@@ -1019,6 +1053,11 @@
         .getElementById("leaderboard-tab")
         .addEventListener("click", function () {
           showSidebarView("leaderboard");
+        });
+      document
+        .getElementById("route-filter-tab")
+        .addEventListener("click", function () {
+          showSidebarView("route-filter");
         });
       fetchGPSData();
     </script>
