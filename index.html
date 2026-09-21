@@ -537,6 +537,7 @@
         <div class="sidebar-view active" id="participants-view" role="tabpanel">
           <div class="search-wrap">
             <input
+              id="participant-search"
               type="search"
               placeholder="Cari nama peserta..."
               autocomplete="off"
@@ -555,11 +556,22 @@
         <div class="sidebar-view" id="route-filter-view" role="tabpanel">
           <div class="sidebar-route-filter">
             <h4>FILTER BY ROUTE (GPX)</h4>
-            <button class="route-choice active" type="button" data-route="all">Semua peserta</button>
-            <button class="route-choice" type="button" data-route="600">600</button>
-            <button class="route-choice" type="button" data-route="300">300</button>
-            <button class="route-choice" type="button" data-route="100">100</button>
-            <label><input id="select-all" type="checkbox" checked /> Select All</label>
+            <button class="route-choice active" type="button" data-route="all">
+              Semua peserta
+            </button>
+            <button class="route-choice" type="button" data-route="600">
+              600
+            </button>
+            <button class="route-choice" type="button" data-route="300">
+              300
+            </button>
+            <button class="route-choice" type="button" data-route="100">
+              100
+            </button>
+            <label
+              ><input id="select-all" type="checkbox" checked /> Select
+              All</label
+            >
           </div>
         </div>
       </div>
@@ -798,9 +810,7 @@
               activeRouteFilter === "all" ||
               participant.category === activeRouteFilter,
           )
-          .sort(
-          (first, second) => second.distance - first.distance,
-          );
+          .sort((first, second) => second.distance - first.distance);
         var container = document.getElementById("leaderboard-list");
         container.innerHTML = leaderboard.length
           ? leaderboard
@@ -817,10 +827,8 @@
       }
 
       function renderParticipantList() {
-        var query = document
-          .getElementById("participant-search")
-          .value.trim()
-          .toLowerCase();
+        var searchInput = document.getElementById("participant-search");
+        var query = searchInput ? searchInput.value.trim().toLowerCase() : "";
         var listContainer = document.getElementById("participant-list");
         listContainer.innerHTML = "";
         latestParticipants
