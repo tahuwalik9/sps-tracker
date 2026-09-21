@@ -163,6 +163,22 @@
         color: #8ea4b9;
         font-size: 12px;
       }
+      .landing-audience {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        max-width: 1180px;
+        margin: auto;
+        padding: 18px 28px 56px;
+      }
+      .landing-audience article {
+        padding: 22px;
+        border: 1px solid rgba(190, 215, 235, 0.18);
+        border-radius: 6px;
+        background: rgba(16, 31, 48, 0.58);
+      }
+      .landing-audience h3 { margin: 0 0 8px; color: #fff; font-size: 16px; }
+      .landing-audience p { margin: 0; color: #afbed0; font-size: 13px; line-height: 1.5; }
       @media (max-width: 720px) {
         .landing-nav {
           padding: 20px 18px 0;
@@ -188,6 +204,7 @@
         .landing-footer {
           padding: 18px;
         }
+        .landing-audience { grid-template-columns: 1fr; padding: 8px 18px 40px; }
       }
       .container {
         display: flex;
@@ -597,22 +614,22 @@
       <nav class="landing-nav">
         <div class="landing-brand">SPS TRACKER</div>
         <div class="landing-nav-links">
-          <a href="#about">Event tracking</a>
-          <a href="/DKAR/">Live map</a>
+          <a href="#about">Product</a>
+          <a href="/DKAR/">Live events</a>
           <a href="/admin.html">Admin</a>
         </div>
       </nav>
       <main class="landing-hero" id="about">
         <div>
-          <div class="landing-kicker">DKAR 2026 / Live event intelligence</div>
-          <h1>Follow every kilometer.</h1>
+          <div class="landing-kicker">Live location / Built for every journey</div>
+          <h1>Simple. Live. Safe.</h1>
           <p>
-            Live tracking untuk melihat posisi peserta, rute lomba, checkpoint,
-            dan progres event dalam satu peta.
+            Pantau perjalanan, bagikan posisi, dan tetap terhubung dengan orang
+            yang penting bagi Anda dalam satu aplikasi tracking.
           </p>
           <div class="landing-actions">
             <a class="landing-button primary" href="/DKAR/"
-              >Buka live tracking</a
+              >Lihat live events</a
             >
             <a class="landing-button secondary" href="/admin.html"
               >Kelola peserta</a
@@ -620,19 +637,24 @@
           </div>
         </div>
         <aside class="landing-panel">
-          <div class="landing-panel-label">Active event</div>
-          <h2>DKAR 2026</h2>
+          <div class="landing-panel-label">Tracking platform</div>
+          <h2>Everything in view.</h2>
           <div class="landing-stat">
-            <span>Live routes</span><strong>03</strong>
+            <span>Live location</span><strong>24/7</strong>
           </div>
           <div class="landing-stat">
-            <span>Categories</span><strong>77 / 161 / 242</strong>
+            <span>Route & progress</span><strong>Live</strong>
           </div>
           <div class="landing-stat">
-            <span>Tracking mode</span><strong>Live</strong>
+            <span>Share with your team</span><strong>Safe</strong>
           </div>
         </aside>
       </main>
+      <section class="landing-audience" aria-label="Who is SPS Tracker for">
+        <article><h3>Event organizers</h3><p>Kelola peserta, rute, kategori, dan pantau event dari satu dashboard.</p></article>
+        <article><h3>Runners & cyclists</h3><p>Bagikan posisi secara live dan biarkan tim melihat progres perjalanan.</p></article>
+        <article><h3>Families & teams</h3><p>Jaga koneksi dengan tampilan lokasi yang jelas dan mudah digunakan.</p></article>
+      </section>
       <footer class="landing-footer">
         <span>SPS Tracker</span><span>Built for the road ahead.</span>
       </footer>
@@ -643,6 +665,7 @@
         !window.location.search.includes("dashboard=1")
       ) {
         document.body.classList.add("root-page");
+        document.title = "SPS Tracker - Live Location Platform";
       }
     </script>
     <header class="event-header">
