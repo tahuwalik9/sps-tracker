@@ -19,6 +19,28 @@
         font-family: Arial, sans-serif;
         background: #101a2a;
       }
+      .root-placeholder {
+        display: none;
+      }
+      .root-page {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        color: #eaf1fa;
+        background: #172234;
+      }
+      .root-page > :not(.root-placeholder) {
+        display: none !important;
+      }
+      .root-page .root-placeholder {
+        display: block;
+        max-width: 520px;
+        padding: 48px;
+        text-align: center;
+        font-family: Arial, sans-serif;
+      }
+      .root-placeholder h1 { font-size: 42px; margin: 0 0 12px; }
+      .root-placeholder a { color: #8ec5ff; }
       .container {
         display: flex;
         height: calc(100vh - 92px);
@@ -41,7 +63,9 @@
         font-size: 12px;
         font-weight: bold;
       }
-      .event-topline strong { letter-spacing: .05em; }
+      .event-topline strong {
+        letter-spacing: 0.05em;
+      }
       .event-actions {
         height: 58px;
         display: flex;
@@ -60,7 +84,9 @@
         font-weight: bold;
         font-size: 12px;
       }
-      .event-action.active { background: #327ff0; }
+      .event-action.active {
+        background: #327ff0;
+      }
       .route-filter {
         position: absolute;
         left: 16px;
@@ -69,11 +95,15 @@
         width: 200px;
         padding: 12px;
         color: #eaf1fa;
-        background: rgba(29, 41, 59, .94);
+        background: rgba(29, 41, 59, 0.94);
         border-radius: 5px;
-        box-shadow: 0 4px 14px rgba(0,0,0,.25);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
       }
-      .route-filter h4 { margin: 0 0 10px; font-size: 11px; color: #9baabd; }
+      .route-filter h4 {
+        margin: 0 0 10px;
+        font-size: 11px;
+        color: #9baabd;
+      }
       .route-choice {
         display: block;
         width: 100%;
@@ -87,7 +117,10 @@
         cursor: pointer;
         font-size: 12px;
       }
-      .route-choice.active { background: #327ff0; border-color: #327ff0; }
+      .route-choice.active {
+        background: #327ff0;
+        border-color: #327ff0;
+      }
       .right-rail {
         position: absolute;
         top: 108px;
@@ -96,11 +129,34 @@
         display: grid;
         gap: 8px;
       }
-      .right-rail button { border: 0; border-radius: 4px; padding: 10px 15px; color: #fff; background: rgba(29,41,59,.9); cursor: pointer; font-weight: bold; }
-      .right-card { display: none; width: 240px; padding: 14px; color: #eaf1fa; background: rgba(22,34,52,.95); border-radius: 6px; }
-      .right-card.open { display: block; }
-      .right-card h4 { margin: 0 0 8px; }
-      .right-card p { margin: 5px 0; font-size: 12px; color: #b4c0d0; }
+      .right-rail button {
+        border: 0;
+        border-radius: 4px;
+        padding: 10px 15px;
+        color: #fff;
+        background: rgba(29, 41, 59, 0.9);
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .right-card {
+        display: none;
+        width: 240px;
+        padding: 14px;
+        color: #eaf1fa;
+        background: rgba(22, 34, 52, 0.95);
+        border-radius: 6px;
+      }
+      .right-card.open {
+        display: block;
+      }
+      .right-card h4 {
+        margin: 0 0 8px;
+      }
+      .right-card p {
+        margin: 5px 0;
+        font-size: 12px;
+        color: #b4c0d0;
+      }
 
       /* Panel Sidebar di sebelah kiri */
       #sidebar {
@@ -312,13 +368,35 @@
           height: auto;
           min-height: 0;
         }
-        .event-header { height: 82px; }
-        .event-topline { height: 30px; }
-        .event-actions { height: 52px; overflow-x: auto; justify-content: flex-start; padding: 0 10px; }
-        .event-action { min-width: 88px; padding: 8px 12px; }
-        .route-filter { position: absolute; top: 92px; left: 8px; width: 150px; }
-        .right-rail { top: 92px; right: 8px; }
-        .right-card { width: 190px; }
+        .event-header {
+          height: 82px;
+        }
+        .event-topline {
+          height: 30px;
+        }
+        .event-actions {
+          height: 52px;
+          overflow-x: auto;
+          justify-content: flex-start;
+          padding: 0 10px;
+        }
+        .event-action {
+          min-width: 88px;
+          padding: 8px 12px;
+        }
+        .route-filter {
+          position: absolute;
+          top: 92px;
+          left: 8px;
+          width: 150px;
+        }
+        .right-rail {
+          top: 92px;
+          right: 8px;
+        }
+        .right-card {
+          width: 190px;
+        }
         #sidebar {
           width: 100%;
           height: 44vh;
@@ -354,6 +432,16 @@
     </style>
   </head>
   <body>
+    <section class="root-placeholder" aria-label="SPS Tracker">
+      <h1>SPS Tracker</h1>
+      <p>Dashboard live tracking sedang disiapkan.</p>
+      <a href="/DKAR/">Buka Live Tracking DKAR</a>
+    </section>
+    <script>
+      if (window.location.pathname === "/" || window.location.pathname === "") {
+        document.body.classList.add("root-page");
+      }
+    </script>
     <header class="event-header">
       <div class="event-topline">
         <span>&larr; All Events</span>
@@ -361,22 +449,41 @@
         <span id="connection-status">Menghubungkan...</span>
       </div>
       <nav class="event-actions" aria-label="Kontrol event">
-        <button class="event-action active" type="button" data-panel="participants">User</button>
+        <button
+          class="event-action active"
+          type="button"
+          data-panel="participants"
+        >
+          User
+        </button>
         <button class="event-action" type="button" data-route="600">600</button>
         <button class="event-action" type="button" data-route="300">300</button>
         <button class="event-action" type="button" data-route="100">100</button>
-        <button class="event-action" type="button" data-panel="weather">Weather</button>
-        <button class="event-action" type="button" data-panel="chat">Chat</button>
+        <button class="event-action" type="button" data-panel="weather">
+          Weather
+        </button>
+        <button class="event-action" type="button" data-panel="chat">
+          Chat
+        </button>
       </nav>
     </header>
     <aside class="route-filter">
       <h4>FILTER BY ROUTE (GPX)</h4>
-      <button class="route-choice active" type="button" data-route="all">Semua peserta</button>
+      <button class="route-choice active" type="button" data-route="all">
+        Semua peserta
+      </button>
       <button class="route-choice" type="button" data-route="600">600</button>
       <button class="route-choice" type="button" data-route="300">300</button>
       <button class="route-choice" type="button" data-route="100">100</button>
-      <label><input id="select-all" type="checkbox" checked /> Select All</label>
-      <input id="participant-search" type="search" placeholder="Search BIB or name..." autocomplete="off" />
+      <label
+        ><input id="select-all" type="checkbox" checked /> Select All</label
+      >
+      <input
+        id="participant-search"
+        type="search"
+        placeholder="Search BIB or name..."
+        autocomplete="off"
+      />
     </aside>
     <aside class="right-rail">
       <div class="right-card" id="weather-card">
@@ -420,7 +527,12 @@
         </div>
         <div class="sidebar-view active" id="participants-view" role="tabpanel">
           <div class="search-wrap">
-            <input type="search" placeholder="Cari nama peserta..." autocomplete="off" disabled />
+            <input
+              type="search"
+              placeholder="Cari nama peserta..."
+              autocomplete="off"
+              disabled
+            />
           </div>
           <ul id="participant-list">
             <!-- Data peserta akan dimasukkan secara otomatis oleh JavaScript -->
@@ -691,7 +803,8 @@
           .filter(
             (participant) =>
               participant.searchText.includes(query) &&
-              (activeRouteFilter === "all" || participant.category === activeRouteFilter),
+              (activeRouteFilter === "all" ||
+                participant.category === activeRouteFilter),
           )
           .forEach((participant) =>
             listContainer.appendChild(participant.element),
@@ -852,7 +965,8 @@
               latestParticipants.push({
                 element: listItem,
                 category: participantCategory,
-                searchText: `${participantName} ${deviceId} ${participantCategory}`.toLowerCase(),
+                searchText:
+                  `${participantName} ${deviceId} ${participantCategory}`.toLowerCase(),
               });
             });
             renderParticipantList();
@@ -873,16 +987,23 @@
       document.querySelectorAll("[data-route]").forEach(function (button) {
         button.addEventListener("click", function () {
           activeRouteFilter = button.dataset.route;
-          document.querySelectorAll("[data-route]").forEach((item) =>
-            item.classList.toggle("active", item.dataset.route === activeRouteFilter),
-          );
+          document
+            .querySelectorAll("[data-route]")
+            .forEach((item) =>
+              item.classList.toggle(
+                "active",
+                item.dataset.route === activeRouteFilter,
+              ),
+            );
           renderParticipantList();
         });
       });
-      document.getElementById("select-all").addEventListener("change", function () {
-        activeRouteFilter = this.checked ? "all" : "none";
-        renderParticipantList();
-      });
+      document
+        .getElementById("select-all")
+        .addEventListener("change", function () {
+          activeRouteFilter = this.checked ? "all" : "none";
+          renderParticipantList();
+        });
       document.querySelectorAll("[data-panel]").forEach(function (button) {
         button.addEventListener("click", function () {
           var panel = document.getElementById(`${button.dataset.panel}-card`);
